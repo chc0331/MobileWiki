@@ -422,14 +422,14 @@ def plan_styles(st):
     for key in ("body", "list"):
         result[key].fontSize = 10
         result[key].leading = 15
-        result[key].spaceAfter = 5
+        result[key].spaceAfter = 4
     result["h1"] = ParagraphStyle(
         "PlanTitle", parent=result["body"], fontName="KSans", fontSize=22,
         leading=30, textColor=NAVY, spaceAfter=9, keepWithNext=True,
     )
     result["h2"].fontSize = 12.5
     result["h2"].leading = 18
-    result["h2"].spaceBefore = 10
+    result["h2"].spaceBefore = 8
     result["h2"].spaceAfter = 5
     result["caption"].fontSize = 8
     result["caption"].leading = 11
