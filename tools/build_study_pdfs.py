@@ -422,7 +422,11 @@ def plan_styles(st):
     for key in ("body", "list"):
         result[key].fontSize = 10
         result[key].leading = 15
-        result[key].spaceAfter = 4
+        result[key].spaceAfter = 3
+    result["material"] = ParagraphStyle(
+        "PlanMaterial", parent=result["body"], fontName="KSans", fontSize=9,
+        leading=12, spaceAfter=2, textColor=MUTED,
+    )
     result["h1"] = ParagraphStyle(
         "PlanTitle", parent=result["body"], fontName="KSans", fontSize=22,
         leading=30, textColor=NAVY, spaceAfter=9, keepWithNext=True,
@@ -611,7 +615,8 @@ def parse_markdown(source: Path, st, *, plan=False, width=CONTENT_W):
         text = " ".join(paragraph)
         if text.startswith("*") and text.endswith("*") and not text.startswith("**"):
             text = text[1:-1]
-        p = Paragraph(inline(text), st["body"])
+        style = st["material"] if plan and text.startswith(("**교재 PDF:**", "**예정 PDF:**")) else st["body"]
+        p = Paragraph(inline(text), style)
         if text.endswith(":"):
             p.keepWithNext = True
         story.append(p)
