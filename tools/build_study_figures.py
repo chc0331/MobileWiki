@@ -111,8 +111,8 @@ def learning_path():
     image, draw = canvas(240)
     stages = [
         ("Chapter 1~3", "첫 오프라인 앱", "입문 → 초급"),
-        ("Chapter 4~7", "추가학습·경량화", "초급 → 중급"),
-        ("Chapter 8", "생성형 요약 확장", "중급 · 선택 심화"),
+        ("Chapter 4~7", "군집 설계·경량화", "초급 → 중급"),
+        ("Chapter 8", "요약 모델 설계", "중급"),
     ]
     width, gap = 496, 56
     for index, (chapter, title, level) in enumerate(stages):
