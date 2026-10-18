@@ -108,30 +108,21 @@ def save(image, relative_path):
 
 
 def learning_path():
-    image, draw = canvas()
-    heading(draw, "문서 AI 학습의 전체 경로")
-    groups = [
-        ("입문", [("1", "AI 기본 개념", ""), ("2", "문서 데이터·머신러닝", "POC A")]),
-        ("초급", [("3", "Android 연결", "POC B"), ("4", "딥러닝 기초", ""), ("5", "자연어 처리", "")]),
-        ("중급", [("6", "분류 모델 추가학습", ""), ("7", "배포·경량화", "POC C"), ("8", "생성형 요약", "POC D")]),
+    image, draw = canvas(240)
+    stages = [
+        ("Chapter 1~3", "첫 오프라인 앱", "입문 → 초급"),
+        ("Chapter 4~7", "추가학습·경량화", "초급 → 중급"),
+        ("Chapter 8", "생성형 요약 확장", "중급 · 선택 심화"),
     ]
-    for row, (level, courses) in enumerate(groups):
-        y = 164 + row * 244
-        card(draw, (64, y, 238, y + 208), fill=NAVY)
-        txt(draw, (151, y + 78), level, 46, True, WHITE, anchor="mt")
-        count = len(courses)
-        start = 288
-        width = (1536 - start - (count - 1) * 52) / count
-        for col, (number, title, poc) in enumerate(courses):
-            x = start + col * (width + 52)
-            card(draw, (x, y, x + width, y + 208), fill=CREAM)
-            txt(draw, (x + 24, y + 18), number, 38, True, TEAL, anchor="lt")
-            paragraph(draw, (x + 24, y + 70, width - 48), title, 40, True, NAVY, line_height=49)
-            if poc:
-                txt(draw, (x + width - 23, y + 23), poc, 38, False, TEAL, anchor="rt")
-            if col < count - 1:
-                arrow(draw, (x + width + 8, y + 104), (x + width + 44, y + 104), width=5)
-    txt(draw, (800, 938), "기간보다 완료 기준으로 다음 단계에 진입합니다.", 40, True, NAVY, anchor="mm")
+    width, gap = 496, 56
+    for index, (chapter, title, level) in enumerate(stages):
+        x = index * (width + gap)
+        card(draw, (x, 8, x + width, 232), fill=LIGHT if index == 0 else CREAM)
+        txt(draw, (x + 28, 32), chapter, 38, True, TEAL, anchor="lt")
+        txt(draw, (x + 28, 92), title, 44, True, NAVY, anchor="lt")
+        txt(draw, (x + 28, 164), level, 36, False, MUTED, anchor="lt")
+        if index < 2:
+            arrow(draw, (x + width + 8, 120), (x + width + gap - 8, 120), width=5)
     save(image, "study/assets/learning_path.png")
 
 

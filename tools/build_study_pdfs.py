@@ -14,6 +14,7 @@ from PIL import Image as PILImage
 from pypdf import PdfReader
 from reportlab import rl_config
 from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
@@ -37,6 +38,8 @@ from reportlab.platypus.tableofcontents import TableOfContents
 
 ROOT = Path(__file__).resolve().parents[1]
 STUDY = ROOT / "study"
+PLAN_SOURCE = STUDY / "README.md"
+PLAN_PDF = STUDY / "학습 계획.pdf"
 PAGE_W, PAGE_H = 182 * mm, 257 * mm
 MARGIN = 52
 CONTENT_W = PAGE_W - MARGIN * 2
@@ -137,7 +140,7 @@ def pdf_link(target: str) -> str:
     if "://" not in target:
         stem, *anchor = target.split("#", 1)
         if stem.endswith(".md"):
-            stem = stem[:-3] + ".pdf"
+            stem = str(Path(stem).with_name("학습 계획.pdf")) if Path(stem).name == "README.md" else stem[:-3] + ".pdf"
         target = stem + (("#" + anchor[0]) if anchor else "")
     return quote(target, safe="/:#?=&%+@")
 
@@ -380,7 +383,64 @@ class StudyBook(BaseDocTemplate):
             self.notify("TOCEntry", (0 if level == 0 else 1, text, self.page, key))
 
 
-def table_flow(rows: list[list[str]], st):
+class StudyPlan(StudyBook):
+    """A compact two-page plan; chapter lessons retain the book layout."""
+
+    def __init__(self, output: Path, source: Path, title: str):
+        BaseDocTemplate.__init__(
+            self, str(output), pagesize=A4,
+            title=title, author="MobileWiki", pageCompression=1,
+        )
+        self.source, self.book_title = source, title
+        self.heading_counter = 0
+        width, height = A4
+        frame = Frame(48, 48, width - 96, height - 104,
+                      leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0)
+        self.addPageTemplates(PageTemplate(id="Plan", frames=[frame], onPage=self.page_art))
+
+    def page_art(self, c, doc):
+        width, height = A4
+        c.saveState()
+        c.setFillColor(TEAL)
+        c.setFont("Helvetica-Bold", 8)
+        c.drawString(48, height - 30, "MOBILEWIKI")
+        c.setFillColor(MUTED)
+        c.setFont("KSans", 8)
+        c.drawRightString(width - 48, height - 30, "학습 계획 · 입문에서 중급까지")
+        c.setStrokeColor(LINE)
+        c.setLineWidth(0.5)
+        c.line(48, height - 39, width - 48, height - 39)
+        c.line(48, 36, width - 48, 36)
+        c.drawString(48, 22, "Chapter 1~8 · 개념 → 예제 → 실습 → 이해 확인")
+        c.setFont("Helvetica", 9)
+        c.drawRightString(width - 48, 22, f"{doc.page} / 2")
+        c.restoreState()
+
+
+def plan_styles(st):
+    result = {key: value.clone("Plan" + key) for key, value in st.items()}
+    for key in ("body", "list"):
+        result[key].fontSize = 10
+        result[key].leading = 15
+        result[key].spaceAfter = 5
+    result["h1"] = ParagraphStyle(
+        "PlanTitle", parent=result["body"], fontName="KSans", fontSize=22,
+        leading=30, textColor=NAVY, spaceAfter=9, keepWithNext=True,
+    )
+    result["h2"].fontSize = 12.5
+    result["h2"].leading = 18
+    result["h2"].spaceBefore = 10
+    result["h2"].spaceAfter = 5
+    result["caption"].fontSize = 8
+    result["caption"].leading = 11
+    result["caption"].spaceBefore = 3
+    result["caption"].spaceAfter = 6
+    result["table"].fontSize = 8.6
+    result["table"].leading = 12.5
+    return result
+
+
+def table_flow(rows: list[list[str]], st, width=CONTENT_W):
     headers, n = rows[0], len(rows[0])
     worksheet = "내 판단" in headers
     if worksheet:
@@ -412,7 +472,7 @@ def table_flow(rows: list[list[str]], st):
     empty_writing = n == 2 and headers[-1] == "내가 정한 내용"
     minimum = [0] + ([43] * (len(rows) - 1) if worksheet or empty_writing else [0] * (len(rows) - 1))
     table = LongTable(
-        data, colWidths=[CONTENT_W * ratio for ratio in ratios],
+        data, colWidths=[width * ratio for ratio in ratios],
         repeatRows=1, hAlign="LEFT", splitByRow=1, splitInRow=0,
         minRowHeights=minimum,
     )
@@ -434,7 +494,7 @@ def is_special(line: str) -> bool:
     return bool(re.match(r"^(#{1,4} |```|\| |>|!\[|- |\d+\. )", line))
 
 
-def parse_markdown(source: Path, st):
+def parse_markdown(source: Path, st, *, plan=False, width=CONTENT_W):
     lines = source.read_text(encoding="utf-8").splitlines()
     story = []
     units = []
@@ -448,17 +508,17 @@ def parse_markdown(source: Path, st):
         heading = re.match(r"^(#{1,4}) (.+)$", line)
         if heading:
             level, title = len(heading[1]), heading[2]
-            if level == 1:
+            if level == 1 and not plan:
                 i += 1
                 continue
             previous_heading = bool(story and getattr(story[-1], "is_section_heading", False))
             new_part = any(part in title for part in (
                 "실습 1 ", "실습과 확인 문제 해설", "선택 실습", "완료 확인",
             ))
-            if is_lesson and level == 2 and new_part:
+            if (plan and title.startswith("Chapter 5.")) or (is_lesson and level == 2 and new_part):
                 story.append(PageBreak())
-            elif not previous_heading:
-                story.append(CondPageBreak(100 if level == 2 else 70))
+            elif not previous_heading and level > 1:
+                story.append(CondPageBreak(60 if plan else (100 if level == 2 else 70)))
             p = Paragraph(inline(title), st[f"h{level}"])
             p.is_section_heading = True
             if level in (2, 3):
@@ -486,9 +546,9 @@ def parse_markdown(source: Path, st):
         if image:
             image_path = source.parent / image[2]
             with PILImage.open(image_path) as im:
-                width, height = im.size
-            ih = CONTENT_W * height / width
-            block = [Image(str(image_path), width=CONTENT_W, height=ih)]
+                image_w, image_h = im.size
+            ih = width * image_h / image_w
+            block = [Image(str(image_path), width=width, height=ih)]
             j = i + 1
             while j < len(lines) and not lines[j].strip():
                 j += 1
@@ -511,7 +571,7 @@ def parse_markdown(source: Path, st):
                     rows.append(cells)
                     units.extend(plain(cell) for cell in cells if cell)
                 i += 1
-            table = table_flow(rows, st)
+            table = table_flow(rows, st, width)
             before = Spacer(1, 4)
             before.keepWithNext = True
             story.extend([before, KeepTogether([table]) if len(rows) <= 7 else table, Spacer(1, 11)])
@@ -582,9 +642,12 @@ def bind_heading_blocks(story):
 
 def verify_pdf(output: Path, units: list[str]) -> tuple[int, int]:
     reader = PdfReader(output)
+    frontmatter_pages = 0 if output == PLAN_PDF else 2
+    if output == PLAN_PDF and len(reader.pages) != 2:
+        raise RuntimeError(f"학습 계획은 총 2페이지여야 합니다: 현재 {len(reader.pages)}페이지")
     # Cover and contents are extra navigation. Remove running furniture before
     # checking source elements in order, including repeated section labels.
-    extracted = "\n".join("\n".join((page.extract_text() or "").splitlines()[4:]) for page in reader.pages[2:])
+    extracted = "\n".join("\n".join((page.extract_text() or "").splitlines()[4:]) for page in reader.pages[frontmatter_pages:])
     normalized = normalize(extracted)
     missing, cursor = [], 0
     for unit in units:
@@ -614,9 +677,15 @@ def verify_pdf(output: Path, units: list[str]) -> tuple[int, int]:
 def build(source: Path, st):
     text = source.read_text(encoding="utf-8")
     title = re.search(r"^# (.+)$", text, re.M).group(1)
-    output = source.with_suffix(".pdf")
-    content, units = parse_markdown(source, st)
+    is_plan = source == PLAN_SOURCE
+    output = PLAN_PDF if is_plan else source.with_suffix(".pdf")
+    if is_plan:
+        st = plan_styles(st)
+    content, units = parse_markdown(source, st, plan=is_plan, width=A4[0] - 96 if is_plan else CONTENT_W)
     content = bind_heading_blocks(content)
+    if is_plan:
+        StudyPlan(output, source, title).multiBuild(content)
+        return output, units
     toc = TableOfContents()
     toc.levelStyles = [st["toc0"], st["toc1"]]
     toc.dotsMinLevel = 0

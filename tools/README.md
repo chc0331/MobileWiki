@@ -2,6 +2,8 @@
 
 `study/`의 Markdown을 원본으로 사용해 같은 디렉터리에 같은 이름의 PDF를 만든다. 본문, 표, 실습, 해설과 코드를 유지하고 표지, 목차, 북마크, 페이지 번호와 학습서 편집을 적용한다.
 
+전체 계획서만 예외로 `study/README.md`를 `study/학습 계획.pdf`로 생성한다. 별도 표지·차례 없이 A4 2페이지에 목표, Chapter 1~8, 단계별 POC를 배치하며 생성 도구가 페이지 수를 확인한다.
+
 ## 준비
 
 Python 3 환경에서 필요한 패키지를 설치한다.
@@ -28,7 +30,7 @@ python3 tools/build_study_figures.py
 python3 tools/build_study_pdfs.py
 ```
 
-PDF 생성 도구는 모든 `study/**/*.md`를 처리한다. 원문의 텍스트 요소가 PDF에 같은 순서로 포함됐는지 확인하며, PDF의 상대 링크는 다른 PDF를 향하도록 변환한다. 새 그림을 추가할 때는 그림 생성 코드와 Markdown의 이미지 링크도 함께 작성한다.
+PDF 생성 도구는 모든 `study/**/*.md`를 처리한다. 원문의 텍스트 요소가 PDF에 같은 순서로 포함됐는지 확인하며, PDF의 상대 링크는 다른 PDF를 향하도록 변환한다. `README.md`로 향하는 링크는 이름이 변경된 학습 계획 PDF로 연결한다. 새 그림을 추가할 때는 그림 생성 코드와 Markdown의 이미지 링크도 함께 작성한다.
 
 ## 시각 검토
 
@@ -36,7 +38,7 @@ PDF 생성 도구는 모든 `study/**/*.md`를 처리한다. 원문의 텍스트
 
 ```sh
 mkdir -p /tmp/mobilewiki-pdf-review
-pdftoppm -r 120 -png study/README.pdf /tmp/mobilewiki-pdf-review/roadmap
+pdftoppm -r 120 -png "study/학습 계획.pdf" /tmp/mobilewiki-pdf-review/roadmap
 pdftoppm -r 120 -png study/chapter1/AI와_머신러닝_기본_개념.pdf /tmp/mobilewiki-pdf-review/chapter1
 ```
 
