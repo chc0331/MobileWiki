@@ -499,6 +499,11 @@ def table_flow(rows: list[list[str]], st, width=CONTENT_W):
         ("LINEBELOW", (0, 0), (-1, 0), 0.5, NAVY),
         ("LINEBELOW", (0, 1), (-1, -1), 0.3, LINE),
     ]))
+    if worksheet:
+        table.setStyle(TableStyle([
+            ("LEFTPADDING", (0, 0), (0, -1), 4),
+            ("RIGHTPADDING", (0, 0), (0, -1), 4),
+        ]))
     return table
 
 

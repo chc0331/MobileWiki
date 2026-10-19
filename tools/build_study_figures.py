@@ -188,6 +188,34 @@ def training_inference():
     save(image, "study/chapter1/assets/training_inference.png")
 
 
+def dataset_split():
+    image, draw = canvas(1110)
+    heading(draw, "서로 다른 원문 100개를 역할별로 나누기")
+    card(draw, (64, 154, 1536, 284), fill=CREAM)
+    txt(draw, (800, 186), "원문 단위로 나눈 뒤 조각을 만듭니다.", 43, True, NAVY, anchor="mt")
+    txt(draw, (800, 248), "같은 원문의 복사본·조각·번역본은 같은 쪽에 둡니다.", 36, False, INK, anchor="mm")
+    columns = [
+        ("학습", "60개", "모델의 숫자를 구함", LIGHT),
+        ("검증", "20개", "개선·선택에 사용", CREAM),
+        ("최종 평가", "20개", "선택을 마친 뒤 확인", "#EEF0F7"),
+    ]
+    width = 464
+    for i, (title, count, purpose, fill) in enumerate(columns):
+        x = 64 + i * 504
+        draw.line((x + width / 2, 284, x + width / 2, 338), fill=LINE, width=4)
+        card(draw, (x, 338, x + width, 626), fill=fill, outline=LINE)
+        txt(draw, (x + width / 2, 373), title, 43, True, NAVY, anchor="mt")
+        txt(draw, (x + width / 2, 447), count, 54, True, TEAL, anchor="mt")
+        paragraph(draw, (x + 24, 548, width - 48), purpose, 36, False, INK, align="center")
+    card(draw, (64, 676, 1536, 918), fill=WHITE, outline=LINE)
+    txt(draw, (99, 705), "학습 → 검증 → 개선·재학습을 반복해 모델을 선택", 39, True, NAVY, anchor="lt")
+    arrow(draw, (100, 815), (202, 815), width=6)
+    txt(draw, (225, 815), "선택한 모델을 최종 평가 자료로 마지막에 확인", 39, True, TEAL, anchor="lm")
+    txt(draw, (800, 973), "60 : 20 : 20은 설명용 예시이며 정해진 비율은 아닙니다.", 36, False, MUTED, anchor="mm")
+    txt(draw, (800, 1045), "각 자료가 실제 사용할 한국어·영어 문서와 주제를 담는지도 확인합니다.", 34, False, INK, anchor="mm")
+    save(image, "study/chapter1/assets/dataset_split.png")
+
+
 def document_tasks():
     image, draw = canvas()
     heading(draw, "같은 원문에서 세 가지 다른 결과")
@@ -240,5 +268,6 @@ if __name__ == "__main__":
     model_flow()
     ai_ml_dl()
     training_inference()
+    dataset_split()
     document_tasks()
     on_device_flow()
