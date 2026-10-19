@@ -126,33 +126,29 @@ def learning_path():
     save(image, "study/assets/learning_path.png")
 
 
-def app_flow():
+def model_flow():
     image, draw = canvas(900)
-    heading(draw, "문서가 앱의 결과로 바뀌는 과정")
-    labels = ["파일 선택", "텍스트 추출", "계산 가능한\n입력으로 변환", "분류·요약", "결과 표시"]
+    heading(draw, "모델이 입력에서 결과를 계산하는 과정")
+    labels = ["문서 입력", "숫자로 표현", "모델 계산", "예측 결과"]
     gap = 36
-    width = (1472 - gap * 4) / 5
+    width = (1472 - gap * 3) / 4
     for i, label in enumerate(labels):
         x = 64 + i * (width + gap)
-        card(draw, (x, 244, x + width, 622), fill=LIGHT if i == 3 else CREAM)
+        card(draw, (x, 244, x + width, 622), fill=LIGHT if i == 2 else CREAM)
         txt(draw, (x + 24, 266), str(i + 1), 38, True, TEAL, anchor="lt")
-        if i in (0, 1):
+        if i in (0, 3):
             document_icon(draw, x + width / 2 - 36, 334)
-        elif i == 4:
-            phone_icon(draw, x + width / 2 - 36, 316, width=72, height=110)
-        elif i == 2:
-            for j, length in enumerate((110, 78, 134)):
-                draw.line((x + 64, 353 + j * 22, x + 64 + length, 353 + j * 22), fill=TEAL, width=9)
+        elif i == 1:
+            txt(draw, (x + width / 2, 377), "[1, 0, ...]", 38, True, TEAL, anchor="mm")
         else:
             draw.rounded_rectangle((x + 64, 332, x + width - 64, 422), radius=12, fill=TEAL)
             txt(draw, (x + width / 2, 377), "AI", 46, True, WHITE, anchor="mm")
         paragraph(draw, (x + 15, 476, width - 30), label, 40, True, NAVY, align="center", line_height=54)
-        if i < 4:
+        if i < 3:
             arrow(draw, (x + width + 5, 426), (x + width + gap - 4, 426), width=5)
-    txt(draw, (64 + (width + gap) + width / 2, 698), "글자를 꺼내기", 38, True, TEAL, anchor="mt")
-    txt(draw, (64 + 3 * (width + gap) + width / 2, 698), "내용을 분석하기", 38, True, TEAL, anchor="mt")
-    txt(draw, (800, 812), "텍스트 추출과 내용 분석은 서로 다른 작업입니다.", 40, False, NAVY, anchor="mm")
-    save(image, "study/chapter1/assets/app_flow.png")
+    txt(draw, (800, 710), "입력의 특성과 준비된 파라미터로 결과를 계산합니다.", 40, True, TEAL, anchor="mm")
+    txt(draw, (800, 812), "일반적인 추론에서는 모델의 파라미터를 바꾸지 않습니다.", 38, False, NAVY, anchor="mm")
+    save(image, "study/chapter1/assets/model_flow.png")
 
 
 def ai_ml_dl():
@@ -217,7 +213,7 @@ def document_tasks():
 
 def on_device_flow():
     image, draw = canvas(900)
-    heading(draw, "PC에서 학습하고 휴대폰에서 추론하기")
+    heading(draw, "모델을 준비한 뒤 Android에서 분석하기")
     positions = [(64, 494), (584, 1014), (1104, 1536)]
     for i, (x1, x2) in enumerate(positions):
         card(draw, (x1, 212, x2, 668), fill=LIGHT if i == 2 else CREAM)
@@ -228,20 +224,20 @@ def on_device_flow():
             document_icon(draw, center - 40, 264, width=80, height=110)
         else:
             phone_icon(draw, center - 40, 252, width=80, height=124)
-        title = ["PC·Colab", "모델 파일", "Android 앱"][i]
-        detail = ["문서와 정답으로\n학습", "학습된 숫자와\n실행에 필요한 정보", "새 문서를\n기기에서 분석"][i]
+        title = ["PC·Colab", "배포 묶음", "Android 앱"][i]
+        detail = ["요약 모델 준비\n군집 중심 계산", "모델·tokenizer\n전처리·군집 중심", "같은 전처리로\n요약·군집 배정"][i]
         txt(draw, (center, 428), title, 46, True, NAVY, anchor="mt")
         paragraph(draw, (x1 + 26, 510, x2 - x1 - 52), detail, 40, False, INK, align="center", line_height=56)
         if i < 2:
             arrow(draw, (x2 + 13, 432), (positions[i + 1][0] - 13, 432))
-    txt(draw, (800, 741), "학습 결과를 앱에 배포해 기기에서 실행합니다.", 40, True, NAVY, anchor="mm")
+    txt(draw, (800, 741), "모델·군집 준비와 문서 분석의 실행 위치를 구분합니다.", 40, True, NAVY, anchor="mm")
     txt(draw, (800, 825), "모델 다운로드와 사용자 문서 분석은 별개의 과정입니다.", 38, False, MUTED, anchor="mm")
-    save(image, "study/chapter1/assets/on_device_flow.png")
+    save(image, "study/assets/on_device_flow.png")
 
 
 if __name__ == "__main__":
     learning_path()
-    app_flow()
+    model_flow()
     ai_ml_dl()
     training_inference()
     document_tasks()
