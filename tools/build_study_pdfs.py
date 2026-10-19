@@ -384,7 +384,7 @@ class StudyBook(BaseDocTemplate):
 
 
 class StudyPlan(StudyBook):
-    """A compact two-page plan; chapter lessons retain the book layout."""
+    """An A4 learning plan; chapter lessons retain the book layout."""
 
     def __init__(self, output: Path, source: Path, title: str):
         BaseDocTemplate.__init__(
@@ -413,28 +413,32 @@ class StudyPlan(StudyBook):
         c.line(48, 36, width - 48, 36)
         c.drawString(48, 22, "Chapter 1~8 · 개념 → 예제 → 실습 → 이해 확인")
         c.setFont("Helvetica", 9)
-        c.drawRightString(width - 48, 22, f"{doc.page} / 2")
+        c.drawRightString(width - 48, 22, str(doc.page))
         c.restoreState()
 
 
 def plan_styles(st):
     result = {key: value.clone("Plan" + key) for key, value in st.items()}
     for key in ("body", "list"):
-        result[key].fontSize = 10
-        result[key].leading = 15
-        result[key].spaceAfter = 3
+        result[key].fontSize = 10.4
+        result[key].leading = 16.5
+        result[key].spaceAfter = 6
     result["material"] = ParagraphStyle(
         "PlanMaterial", parent=result["body"], fontName="KSans", fontSize=9,
-        leading=12, spaceAfter=2, textColor=MUTED,
+        leading=13, spaceAfter=6, textColor=MUTED, keepWithNext=True,
     )
     result["h1"] = ParagraphStyle(
         "PlanTitle", parent=result["body"], fontName="KSans", fontSize=22,
         leading=30, textColor=NAVY, spaceAfter=9, keepWithNext=True,
     )
-    result["h2"].fontSize = 12.5
-    result["h2"].leading = 18
-    result["h2"].spaceBefore = 8
-    result["h2"].spaceAfter = 5
+    result["h2"].fontSize = 14.5
+    result["h2"].leading = 21
+    result["h2"].spaceBefore = 17
+    result["h2"].spaceAfter = 8
+    result["h3"].fontSize = 11.7
+    result["h3"].leading = 17
+    result["h3"].spaceBefore = 13
+    result["h3"].spaceAfter = 7
     result["caption"].fontSize = 8
     result["caption"].leading = 11
     result["caption"].spaceBefore = 3
@@ -447,7 +451,10 @@ def plan_styles(st):
 def table_flow(rows: list[list[str]], st, width=CONTENT_W):
     headers, n = rows[0], len(rows[0])
     worksheet = "내 판단" in headers
-    if worksheet:
+    cluster_worksheet = headers == ["설정", "문서들을 묶은 결과", "대표 문서·핵심어·그룹 이름"]
+    if cluster_worksheet:
+        ratios = [0.12, 0.40, 0.48]
+    elif worksheet:
         ratios = [0.07, 0.47, 0.15, 0.31]
     elif n == 4:
         ratios = [0.09, 0.34, 0.15, 0.42]
@@ -474,7 +481,8 @@ def table_flow(rows: list[list[str]], st, width=CONTENT_W):
     data = [[Paragraph(inline(cell), st["thead"] if r == 0 else st["table"])
              for cell in row] for r, row in enumerate(rows)]
     empty_writing = n == 2 and headers[-1] == "내가 정한 내용"
-    minimum = [0] + ([43] * (len(rows) - 1) if worksheet or empty_writing else [0] * (len(rows) - 1))
+    row_height = 86 if cluster_worksheet else (43 if worksheet or empty_writing else 0)
+    minimum = [0] + [row_height] * (len(rows) - 1)
     table = LongTable(
         data, colWidths=[width * ratio for ratio in ratios],
         repeatRows=1, hAlign="LEFT", splitByRow=1, splitInRow=0,
@@ -519,10 +527,10 @@ def parse_markdown(source: Path, st, *, plan=False, width=CONTENT_W):
             new_part = any(part in title for part in (
                 "실습 1 ", "실습과 확인 문제 해설", "선택 실습", "완료 확인",
             ))
-            if (plan and title.startswith("Chapter 5.")) or (is_lesson and level == 2 and new_part):
+            if is_lesson and level == 2 and new_part:
                 story.append(PageBreak())
             elif not previous_heading and level > 1:
-                story.append(CondPageBreak(60 if plan else (100 if level == 2 else 70)))
+                story.append(CondPageBreak((150 if level == 2 else 90) if plan else (100 if level == 2 else 70)))
             p = Paragraph(inline(title), st[f"h{level}"])
             p.is_section_heading = True
             if level in (2, 3):
@@ -648,8 +656,6 @@ def bind_heading_blocks(story):
 def verify_pdf(output: Path, units: list[str]) -> tuple[int, int]:
     reader = PdfReader(output)
     frontmatter_pages = 0 if output == PLAN_PDF else 2
-    if output == PLAN_PDF and len(reader.pages) != 2:
-        raise RuntimeError(f"학습 계획은 총 2페이지여야 합니다: 현재 {len(reader.pages)}페이지")
     # Cover and contents are extra navigation. Remove running furniture before
     # checking source elements in order, including repeated section labels.
     extracted = "\n".join("\n".join((page.extract_text() or "").splitlines()[4:]) for page in reader.pages[frontmatter_pages:])
