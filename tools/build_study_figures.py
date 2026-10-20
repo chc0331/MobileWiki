@@ -128,26 +128,30 @@ def learning_path():
 
 def model_flow():
     image, draw = canvas(900)
-    heading(draw, "모델이 입력에서 결과를 계산하는 과정")
-    labels = ["문서 입력", "숫자로 표현", "모델 계산", "예측 결과"]
+    heading(draw, "‘배터리 수명 안내’가 IT로 분류되는 과정")
+    labels = ["문서 입력", "숫자로 바꾸기", "점수 계산", "결과"]
     gap = 36
     width = (1472 - gap * 3) / 4
     for i, label in enumerate(labels):
         x = 64 + i * (width + gap)
-        card(draw, (x, 244, x + width, 622), fill=LIGHT if i == 2 else CREAM)
-        txt(draw, (x + 24, 266), str(i + 1), 38, True, TEAL, anchor="lt")
-        if i in (0, 3):
-            document_icon(draw, x + width / 2 - 36, 334)
+        card(draw, (x, 204, x + width, 658), fill=LIGHT if i == 2 else CREAM)
+        txt(draw, (x + width / 2, 235), label, 36, True, NAVY, anchor="mt")
+        if i == 0:
+            document_icon(draw, x + width / 2 - 36, 335)
+            paragraph(draw, (x + 18, 480, width - 36), "배터리 수명 안내", 32, False, INK, align="center")
         elif i == 1:
-            txt(draw, (x + width / 2, 377), "[1, 0, ...]", 38, True, TEAL, anchor="mm")
+            txt(draw, (x + width / 2, 375), "[1, 0]", 44, True, TEAL, anchor="mm")
+            paragraph(draw, (x + 18, 465, width - 36), "배터리 있음: 1\n경기 없음: 0", 32, False, INK, align="center", line_height=46)
+        elif i == 2:
+            paragraph(draw, (x + 18, 340, width - 36), "배터리 점수: +1\n경기 점수: -2", 30, False, INK, align="center", line_height=46)
+            paragraph(draw, (x + 18, 480, width - 36), "있는 단어만 더함\n합계: +1", 32, True, TEAL, align="center", line_height=46)
         else:
-            draw.rounded_rectangle((x + 64, 332, x + width - 64, 422), radius=12, fill=TEAL)
-            txt(draw, (x + width / 2, 377), "AI", 46, True, WHITE, anchor="mm")
-        paragraph(draw, (x + 15, 476, width - 30), label, 40, True, NAVY, align="center", line_height=54)
+            txt(draw, (x + width / 2, 375), "IT", 76, True, TEAL, anchor="mm")
+            paragraph(draw, (x + 18, 480, width - 36), "합계가 양수면 IT", 32, False, INK, align="center")
         if i < 3:
             arrow(draw, (x + width + 5, 426), (x + width + gap - 4, 426), width=5)
-    txt(draw, (800, 710), "입력의 특성과 준비된 파라미터로 결과를 계산합니다.", 40, True, TEAL, anchor="mm")
-    txt(draw, (800, 812), "일반적인 추론에서는 모델의 파라미터를 바꾸지 않습니다.", 38, False, NAVY, anchor="mm")
+    txt(draw, (800, 738), "준비된 단어 점수로 결과를 계산합니다. 이 과정이 추론입니다.", 36, True, TEAL, anchor="mm")
+    txt(draw, (800, 825), "자료에서 단어 점수를 구하는 학습 과정은 7절에서 해 봅니다.", 34, False, NAVY, anchor="mm")
     save(image, "study/chapter1/assets/model_flow.png")
 
 
