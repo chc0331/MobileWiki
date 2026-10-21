@@ -108,50 +108,51 @@ def save(image, relative_path):
 
 
 def learning_path():
-    image, draw = canvas(240)
+    image, draw = canvas(310)
     stages = [
-        ("Chapter 1~5", "기초 이론·실습", "입문 → 초급"),
-        ("Chapter 6~7", "모델 설계·POC", "초급 → 중급"),
-        ("Chapter 8", "Android 통합 POC", "중급"),
+        ("Chapter 1~6", "기초·군집화\n설계 학습", "이론·실습·평가"),
+        ("POC A", "군집 모델\n설계 검증", "PC 시제품"),
+        ("Chapter 7", "요약 모델\n설계 학습", "이론·실습·평가"),
+        ("POC B", "요약 모델\n설계 검증", "PC 시제품"),
+        ("Chapter 8", "Android\n배포 학습", "이론·실습·평가"),
+        ("POC C", "Android\n통합 검증", "오프라인 앱"),
     ]
-    width, gap = 496, 56
+    width, gap = 240, 32
     for index, (chapter, title, level) in enumerate(stages):
         x = index * (width + gap)
-        card(draw, (x, 8, x + width, 232), fill=LIGHT if index == 0 else CREAM)
-        txt(draw, (x + 28, 32), chapter, 38, True, TEAL, anchor="lt")
-        txt(draw, (x + 28, 92), title, 44, True, NAVY, anchor="lt")
-        txt(draw, (x + 28, 164), level, 36, False, MUTED, anchor="lt")
-        if index < 2:
-            arrow(draw, (x + width + 8, 120), (x + width + gap - 8, 120), width=5)
+        card(draw, (x, 8, x + width, 302), fill=LIGHT if index % 2 == 0 else CREAM)
+        txt(draw, (x + 18, 34), chapter, 32, True, TEAL, anchor="lt")
+        paragraph(draw, (x + 18, 105, width - 36), title, 36, True, NAVY, line_height=49)
+        txt(draw, (x + 18, 247), level, 32, False, MUTED, anchor="lt")
+        if index < len(stages) - 1:
+            arrow(draw, (x + width + 4, 155), (x + width + gap - 4, 155), width=5)
     save(image, "study/assets/learning_path.png")
 
 
 def model_flow():
-    image, draw = canvas(900)
+    image, draw = canvas(620)
     heading(draw, "‘배터리 수명 안내’가 IT로 분류되는 과정")
     labels = ["문서 입력", "숫자로 바꾸기", "점수 계산", "결과"]
     gap = 36
     width = (1472 - gap * 3) / 4
     for i, label in enumerate(labels):
         x = 64 + i * (width + gap)
-        card(draw, (x, 204, x + width, 658), fill=LIGHT if i == 2 else CREAM)
-        txt(draw, (x + width / 2, 235), label, 36, True, NAVY, anchor="mt")
+        card(draw, (x, 172, x + width, 468), fill=LIGHT if i == 2 else CREAM)
+        txt(draw, (x + width / 2, 199), label, 38, True, NAVY, anchor="mt")
         if i == 0:
-            document_icon(draw, x + width / 2 - 36, 335)
-            paragraph(draw, (x + 18, 480, width - 36), "배터리 수명 안내", 32, False, INK, align="center")
+            paragraph(draw, (x + 18, 302, width - 36), "배터리\n수명 안내", 42, False, INK, align="center", line_height=58)
         elif i == 1:
-            txt(draw, (x + width / 2, 375), "[1, 0]", 44, True, TEAL, anchor="mm")
-            paragraph(draw, (x + 18, 465, width - 36), "배터리 있음: 1\n경기 없음: 0", 32, False, INK, align="center", line_height=46)
+            txt(draw, (x + width / 2, 315), "[1, 0]", 50, True, TEAL, anchor="mm")
+            paragraph(draw, (x + 12, 387, width - 24), "배터리 1 · 경기 0", 36, False, INK, align="center")
         elif i == 2:
-            paragraph(draw, (x + 18, 340, width - 36), "배터리 점수: +1\n경기 점수: -2", 30, False, INK, align="center", line_height=46)
-            paragraph(draw, (x + 18, 480, width - 36), "있는 단어만 더함\n합계: +1", 32, True, TEAL, align="center", line_height=46)
+            paragraph(draw, (x + 18, 288, width - 36), "1 × (+1)\n+ 0 × (-2)\n= +1", 40, True, TEAL, align="center", line_height=53)
         else:
-            txt(draw, (x + width / 2, 375), "IT", 76, True, TEAL, anchor="mm")
-            paragraph(draw, (x + 18, 480, width - 36), "합계가 양수면 IT", 32, False, INK, align="center")
+            txt(draw, (x + width / 2, 315), "IT", 76, True, TEAL, anchor="mm")
+            paragraph(draw, (x + 18, 390, width - 36), "합계가 양수", 36, False, INK, align="center")
         if i < 3:
-            arrow(draw, (x + width + 5, 426), (x + width + gap - 4, 426), width=5)
-    txt(draw, (800, 738), "준비된 단어 점수로 결과를 계산합니다. 이 과정이 추론입니다.", 36, True, TEAL, anchor="mm")
-    txt(draw, (800, 825), "자료에서 단어 점수를 구하는 학습 과정은 7절에서 해 봅니다.", 34, False, NAVY, anchor="mm")
+            arrow(draw, (x + width + 5, 320), (x + width + gap - 4, 320), width=5)
+    txt(draw, (800, 532), "추론에서는 점수표를 바꾸지 않고 문서의 합계만 계산합니다.", 38, True, TEAL, anchor="mm")
+    txt(draw, (800, 588), "설명용 예제: 배터리 +1, 경기 -2는 이미 학습한 점수라고 가정합니다.", 36, False, NAVY, anchor="mm")
     save(image, "study/chapter1/assets/model_flow.png")
 
 

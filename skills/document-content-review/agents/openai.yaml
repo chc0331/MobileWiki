@@ -1,0 +1,4 @@
+interface:
+  display_name: "문서 설명 검수"
+  short_description: "문서 항목별 설명의 정확성·명확성과 예제·실습·해설의 연결을 검수합니다"
+  default_prompt: "$document-content-review 이 문서를 항목별로 검수하고 설명 오류와 이해하기 어려운 부분의 구체적인 수정안을 제시해줘."

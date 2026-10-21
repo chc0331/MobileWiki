@@ -87,8 +87,8 @@ def register_fonts() -> None:
 
 def styles() -> dict[str, ParagraphStyle]:
     body = ParagraphStyle(
-        "Body", fontName="KBody", fontSize=10.4, leading=17.5,
-        textColor=INK, spaceAfter=8.5, wordWrap="CJK", splitLongWords=True,
+        "Body", fontName="KBody", fontSize=11, leading=18.5,
+        textColor=INK, spaceAfter=9, wordWrap="CJK", splitLongWords=True,
         allowWidows=0, allowOrphans=0,
     )
     result = {"body": body}
@@ -101,8 +101,12 @@ def styles() -> dict[str, ParagraphStyle]:
         textColor=TEAL, spaceBefore=17, spaceAfter=8, keepWithNext=True,
     )
     result["h4"] = ParagraphStyle(
-        "H4", parent=body, fontName="KSans", fontSize=10.8, leading=17,
-        textColor=NAVY, spaceBefore=11, spaceAfter=6, keepWithNext=True,
+        "H4", parent=body, fontName="KSans", fontSize=11.3, leading=18,
+        textColor=NAVY, spaceBefore=14, spaceAfter=8, keepWithNext=True,
+    )
+    result["cue"] = ParagraphStyle(
+        "LearningCue", parent=result["h4"], backColor=PALE,
+        borderPadding=6, spaceAfter=12,
     )
     result["list"] = ParagraphStyle(
         "List", parent=body, leftIndent=16, bulletIndent=1,
@@ -114,15 +118,15 @@ def styles() -> dict[str, ParagraphStyle]:
         backColor=PALE, spaceBefore=8, spaceAfter=14,
     )
     result["caption"] = ParagraphStyle(
-        "Caption", parent=body, fontName="KSans", fontSize=8.5,
-        leading=13, textColor=MUTED, spaceBefore=6, spaceAfter=15,
+        "Caption", parent=body, fontName="KSans", fontSize=9,
+        leading=14, textColor=MUTED, spaceBefore=6, spaceAfter=15,
     )
     result["table"] = ParagraphStyle(
-        "Cell", parent=body, fontName="KSans", fontSize=8.6,
-        leading=13, spaceBefore=0, spaceAfter=0, allowWidows=1, allowOrphans=1,
+        "Cell", parent=body, fontName="KSans", fontSize=9.5,
+        leading=14.5, spaceBefore=0, spaceAfter=0, allowWidows=1, allowOrphans=1,
     )
     result["thead"] = ParagraphStyle(
-        "TableHead", parent=result["table"], fontSize=8.7, textColor=colors.white,
+        "TableHead", parent=result["table"], fontSize=9.5, textColor=colors.white,
     )
     result["toc0"] = ParagraphStyle(
         "TOC0", parent=body, fontName="KSans", fontSize=10.3, leading=17,
@@ -165,7 +169,7 @@ def inline(text: str) -> str:
         if token.startswith("`"):
             parts.append(f'<font name="KSans" color="#167D8D">{html.escape(token[1:-1])}</font>')
         elif token.startswith("**"):
-            parts.append(f'<b>{html.escape(token[2:-2])}</b>')
+            parts.append(f'<b>{inline(token[2:-2])}</b>')
         else:
             label, target = re.match(r"\[([^\]]+)\]\(([^)]+)\)", token).groups()
             parts.append(f'<link href="{html.escape(pdf_link(target), quote=True)}" color="#167D8D">{html.escape(label)}</link>')
@@ -263,7 +267,7 @@ class CodeBlock(Flowable):
     def __init__(self, lines: list[str], language: str, continuation=False):
         super().__init__()
         self.lines, self.language, self.continuation = lines, language, continuation
-        self.font_size, self.leading = 8.1, 12.2
+        self.font_size, self.leading = 8.6, 13.2
         self.width = CONTENT_W
         self.prepared = self.wrap_lines(lines)
         self.height = 35 + len(self.prepared) * self.leading
@@ -420,9 +424,9 @@ class StudyPlan(StudyBook):
 def plan_styles(st):
     result = {key: value.clone("Plan" + key) for key, value in st.items()}
     for key in ("body", "list"):
-        result[key].fontSize = 10.4
-        result[key].leading = 16.5
-        result[key].spaceAfter = 6
+        result[key].fontSize = 11
+        result[key].leading = 18
+        result[key].spaceAfter = 8
     result["material"] = ParagraphStyle(
         "PlanMaterial", parent=result["body"], fontName="KSans", fontSize=9,
         leading=13, spaceAfter=6, textColor=MUTED, keepWithNext=True,
@@ -439,12 +443,12 @@ def plan_styles(st):
     result["h3"].leading = 17
     result["h3"].spaceBefore = 13
     result["h3"].spaceAfter = 7
-    result["caption"].fontSize = 8
-    result["caption"].leading = 11
+    result["caption"].fontSize = 9
+    result["caption"].leading = 14
     result["caption"].spaceBefore = 3
     result["caption"].spaceAfter = 6
-    result["table"].fontSize = 8.6
-    result["table"].leading = 12.5
+    result["table"].fontSize = 9.5
+    result["table"].leading = 14.5
     return result
 
 
@@ -536,12 +540,15 @@ def parse_markdown(source: Path, st, *, plan=False, width=CONTENT_W):
                 story.append(PageBreak())
             elif not previous_heading and level > 1:
                 story.append(CondPageBreak((150 if level == 2 else 90) if plan else (100 if level == 2 else 70)))
-            p = Paragraph(inline(title), st[f"h{level}"])
+            learning_cue = level == 4 and title.startswith((
+                "핵심 질문", "함께 풀기", "직접 해보기", "결과와 해석", "핵심 정리",
+            ))
+            p = Paragraph(inline(title), st["cue"] if learning_cue else st[f"h{level}"])
             p.is_section_heading = True
             if level in (2, 3):
                 p.heading_level = level
                 p.heading_text = plain(title)
-                p.toc_include = level == 2 or (not is_lesson and title.startswith("과목 "))
+                p.toc_include = level == 2 or (is_lesson and title.startswith("8.4 "))
             story.append(p)
             units.append(plain(title))
             i += 1
@@ -554,7 +561,6 @@ def parse_markdown(source: Path, st, *, plan=False, width=CONTENT_W):
                 code.append(lines[i])
                 i += 1
             before = Spacer(1, 6)
-            before.keepWithNext = True
             story.extend([before, CodeBlock(code, language), Spacer(1, 12)])
             units.extend(item for item in code if item.strip())
             i += 1
@@ -576,6 +582,9 @@ def parse_markdown(source: Path, st, *, plan=False, width=CONTENT_W):
                 i = j + 1
             else:
                 i += 1
+            # Keep the short calculation immediately before a figure on its page.
+            if story and getattr(story[-1], "short_list", False):
+                block = list(story.pop()._content) + [Spacer(1, 6)] + block
             before = Spacer(1, 8)
             before.keepWithNext = True
             story.extend([before, KeepTogether(block)])
@@ -589,9 +598,10 @@ def parse_markdown(source: Path, st, *, plan=False, width=CONTENT_W):
                     units.extend(plain(cell) for cell in cells if cell)
                 i += 1
             table = table_flow(rows, st, width)
+            keep_table = len(rows) <= 7 and table.wrap(width, 10000)[1] <= 220
             before = Spacer(1, 4)
-            before.keepWithNext = True
-            story.extend([before, KeepTogether([table]) if len(rows) <= 7 else table, Spacer(1, 11)])
+            before.keepWithNext = keep_table
+            story.extend([before, KeepTogether([table]) if keep_table else table, Spacer(1, 11)])
             continue
         if line.startswith(">"):
             quotes = []
@@ -604,21 +614,28 @@ def parse_markdown(source: Path, st, *, plan=False, width=CONTENT_W):
             continue
         item = re.match(r"^(- |\d+\. )(.+)$", line)
         if item:
-            marker, text = item.groups()
-            if text.startswith("[ ] "):
-                checklist = []
-                while i < len(lines) and lines[i].startswith("- [ ] "):
-                    text = lines[i][6:]
-                    checklist.append(Paragraph(inline(text), st["list"], bulletText="☐"))
-                    units.append(plain(text))
-                    i += 1
-                story.append(KeepTogether(checklist))
-                continue
+            items = []
+            numbered = item[1] != "- "
+            while i < len(lines):
+                item = re.match(r"^(- |\d+\. )(.+)$", lines[i])
+                if not item or (item[1] != "- ") != numbered:
+                    break
+                marker, text = item.groups()
+                if text.startswith("[ ] "):
+                    text, marker = text[4:], "☐"
+                else:
+                    marker = "•" if marker == "- " else marker.strip()
+                items.append(Paragraph(inline(text), st["list"], bulletText=marker))
+                units.append(plain(text))
+                i += 1
+            height = sum(p.wrap(width, 10000)[1] + p.getSpaceBefore() + p.getSpaceAfter()
+                         for p in items)
+            if len(items) <= 4 and height <= 220:
+                block = KeepTogether(items)
+                block.short_list = True
+                story.append(block)
             else:
-                marker = "•" if marker == "- " else marker.strip()
-            story.append(Paragraph(inline(text), st["list"], bulletText=marker))
-            units.append(plain(text))
-            i += 1
+                story.extend(KeepTogether([p]) for p in items)
             continue
         paragraph = [line]
         i += 1
