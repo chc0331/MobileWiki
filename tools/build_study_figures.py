@@ -165,7 +165,7 @@ def ai_ml_dl():
     txt(draw, (108, 342), "모든 AI가 딥러닝인 것은 아닙니다.", 38, False, MUTED, anchor="lt")
     card(draw, (376, 424, 1496, 904), fill=CREAM, outline=TEAL, radius=22, width=4)
     txt(draw, (418, 461), "ML 머신러닝", 46, True, NAVY, anchor="lt")
-    txt(draw, (418, 528), "데이터에서 예측 기준을 얻는 방법", 40, False, INK, anchor="lt")
+    txt(draw, (418, 528), "데이터에서 예측·패턴 탐색 기준을 얻는 방법", 40, False, INK, anchor="lt")
     card(draw, (686, 638, 1458, 866), fill=LIGHT, outline=TEAL, radius=18, width=3)
     txt(draw, (726, 673), "DL 딥러닝", 44, True, NAVY, anchor="lt")
     paragraph(draw, (726, 738, 690), "여러 층의 신경망을 학습하는 방식", 40, False, INK, line_height=52)

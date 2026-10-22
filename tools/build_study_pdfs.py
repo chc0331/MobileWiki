@@ -468,6 +468,8 @@ def table_flow(rows: list[list[str]], st, width=CONTENT_W):
         ratios = [0.07, 0.47, 0.15, 0.31]
     elif chapter2_worksheet:
         ratios = [0.36, 0.21, 0.43]
+    elif headers == ["구분", "배터리 수명 안내", "경기 결과 안내", "왜 다른가요?"]:
+        ratios = [0.20, 0.21, 0.21, 0.38]
     elif n == 4:
         ratios = [0.09, 0.34, 0.15, 0.42]
     elif n == 6:
@@ -475,7 +477,7 @@ def table_flow(rows: list[list[str]], st, width=CONTENT_W):
     elif n == 3 and headers[1] == "예시 판단":
         ratios = [0.22, 0.18, 0.60]
     elif n == 3 and headers[0] == "새 입력":
-        ratios = [0.52, 0.23, 0.25] if headers[1] == "점수 합" else [0.42, 0.40, 0.18]
+        ratios = [0.52, 0.23, 0.25] if headers[1] == "점수 합" else [0.30, 0.22, 0.48]
     elif n == 3 and headers[0] == "번호":
         ratios = [0.11, 0.72, 0.17]
     elif n == 3 and headers[-1] in ("라벨", "정답"):
@@ -660,9 +662,16 @@ def parse_markdown(source: Path, st, *, plan=False, width=CONTENT_W):
             text = text[1:-1]
         style = st["material"] if plan and text.startswith(("**교재 PDF:**", "**예정 PDF:**")) else st["body"]
         p = Paragraph(inline(text), style)
-        if text.endswith(":") or re.match(r"^\*\*\d+\. 질문:\*\*", text):
+        standalone_label = bool(re.fullmatch(r"\*\*[^*]+\*\*", text))
+        if text.endswith(":") or re.match(r"^\*\*\d+\. 질문:\*\*", text) or standalone_label:
             p.keepWithNext = True
-        story.append(p)
+        if standalone_label:
+            p.is_section_heading = True
+        height = p.wrap(width, 10000)[1]
+        if not getattr(p, "keepWithNext", False) and height <= style.leading * 5:
+            story.append(KeepTogether([p]))
+        else:
+            story.append(p)
         units.append(plain(text))
     return story, units
 
