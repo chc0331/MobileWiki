@@ -359,6 +359,52 @@ def chapter2_group_split():
     save(image, "study/chapter2/assets/group_split.png")
 
 
+def chapter3_tfidf_fit_transform():
+    image, draw = canvas(1020)
+    heading(draw, "TF-IDF: 학습에서 정한 기준을 새 문서에 적용")
+
+    columns = [(64, 340), (408, 750), (818, 1160), (1228, 1536)]
+    rows = [
+        ("학습 자료: 기준을 정하는 단계", 224, 443, [
+            ("학습 문서", "원문 묶음별로 분리\n정답 라벨 있음"),
+            ("TF-IDF fit", "어휘·IDF를\n학습 문서에서 결정"),
+            ("transform", "학습 문서를\n숫자 벡터로 변환"),
+            ("분류기 fit", "벡터·라벨로\n가중치 학습"),
+        ]),
+        ("검증·최종 평가 자료", 613, 832, [
+            ("새 문서", "원문 묶음별로 분리\n학습에는 사용 안 함"),
+            ("TF-IDF transform", "학습 어휘·IDF를\n그대로 사용"),
+            ("문서 벡터", "새 단어는 학습 어휘에\n추가하지 않음"),
+            ("예측·평가", "고정한 가중치로\n결과 계산·비교"),
+        ]),
+    ]
+    for row_index, (label, top, bottom, boxes) in enumerate(rows):
+        title_y = 158 if row_index == 0 else 548
+        txt(draw, (64, title_y), label, 39, True, NAVY, anchor="lt")
+        for index, ((left, right), (title, detail)) in enumerate(zip(columns, boxes)):
+            fill = LIGHT if index in (1, 3) else CREAM
+            card(draw, (left, top, right, bottom), fill=fill, outline=LINE)
+            txt(draw, ((left + right) / 2, top + 30), title, 34, True, NAVY, anchor="mt")
+            draw.line((left + 22, top + 91, right - 22, top + 91), fill=LINE, width=2)
+            paragraph(draw, (left + 16, top + 114, right - left - 32), detail,
+                      30, False, INK, align="center", line_height=44)
+            if index < len(columns) - 1:
+                arrow(draw, (right + 8, (top + bottom) / 2),
+                      (columns[index + 1][0] - 8, (top + bottom) / 2), width=5)
+
+    for x, label in [(579, "어휘·IDF 고정"), (1382, "가중치 고정")]:
+        draw.line((x, 443, x, 586), fill=TEAL, width=5)
+        draw.polygon(((x, 610), (x - 14, 584), (x + 14, 584)), fill=TEAL)
+        txt(draw, (x + 20, 497), label, 29, True, TEAL, anchor="lt")
+
+    card(draw, (64, 868, 1536, 1004), fill=WHITE, outline=LINE)
+    txt(draw, (800, 895), "검증 자료는 모델 선택에, 최종 평가 자료는 선택을 마친 뒤 확인에 씁니다.",
+        35, True, NAVY, anchor="mt")
+    txt(draw, (800, 953), "두 자료로 어휘·IDF나 분류기 가중치를 다시 학습하지 않습니다.",
+        33, False, MUTED, anchor="mt")
+    save(image, "study/chapter3/assets/tfidf_fit_transform.png")
+
+
 if __name__ == "__main__":
     learning_path()
     model_flow()
@@ -370,3 +416,4 @@ if __name__ == "__main__":
     chapter2_data_pipeline()
     chapter2_numpy_axes()
     chapter2_group_split()
+    chapter3_tfidf_fit_transform()

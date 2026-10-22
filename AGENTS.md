@@ -63,11 +63,17 @@ study/
 │   ├── AI와_머신러닝_기본_개념.md
 │   ├── AI와_머신러닝_기본_개념.pdf
 │   └── assets/
-└── chapter2/
-    ├── Python·NumPy와_문서_데이터_처리.md
-    ├── Python·NumPy와_문서_데이터_처리.pdf
+├── chapter2/
+│   ├── Python·NumPy와_문서_데이터_처리.md
+│   ├── Python·NumPy와_문서_데이터_처리.pdf
+│   ├── assets/
+│   └── examples/
+└── chapter3/
+    ├── 기초_수학과_전통적_머신러닝.md
+    ├── 기초_수학과_전통적_머신러닝.pdf
     ├── assets/
-    └── examples/
+    ├── examples/
+    └── requirements.txt
 ```
 
-Chapter 3 이후의 과목도 로드맵의 번호와 과목명에 따라 같은 규칙으로 작성한다.
+Chapter 4 이후의 과목도 로드맵의 번호와 과목명에 따라 같은 규칙으로 작성한다.
