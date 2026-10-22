@@ -1,0 +1,3 @@
+An offline keyboard update changed how suggestions are cached on the phone. The team tested the same phrase list before and after the change.
+
+The median suggestion delay fell from 90 ms to 65 ms. The test did not measure battery use.

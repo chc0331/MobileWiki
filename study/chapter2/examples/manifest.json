@@ -1,0 +1,137 @@
+[
+  {
+    "doc_id": "IT-01",
+    "source_path": "it01_ko.txt",
+    "language": "ko",
+    "label": "IT",
+    "group_id": "G-IT-01",
+    "summary": "화면 밝기 기능을 바꾼 뒤 세 대의 휴대전화에서 동영상 재생 시간이 평균 40분 늘었다.",
+    "status": "ready"
+  },
+  {
+    "doc_id": "IT-01-EN",
+    "source_path": "it01_en_translation.txt",
+    "language": "en",
+    "label": "IT",
+    "group_id": "G-IT-01",
+    "summary": "A brightness update extended average video playback by 40 minutes in a test of three phones.",
+    "status": "ready"
+  },
+  {
+    "doc_id": "IT-02",
+    "source_path": "it02_ko.pdf",
+    "language": "ko",
+    "label": "IT",
+    "group_id": "G-IT-02",
+    "summary": "메모 앱의 첫 화면 평균 로딩 시간이 1.8초에서 1.2초로 줄었다.",
+    "status": "ready"
+  },
+  {
+    "doc_id": "IT-03",
+    "source_path": "it03_en.txt",
+    "language": "en",
+    "label": "IT",
+    "group_id": "G-IT-03",
+    "summary": "An offline keyboard update cut median suggestion delay from 90 ms to 65 ms.",
+    "status": "ready"
+  },
+  {
+    "doc_id": "ECO-01",
+    "source_path": "eco01_en.txt",
+    "language": "en",
+    "label": "경제",
+    "group_id": "G-ECO-01",
+    "summary": "A store raised imported fruit prices and reported an 8 percent sales decline over one week.",
+    "status": "ready"
+  },
+  {
+    "doc_id": "ECO-02",
+    "source_path": "eco02_ko.txt",
+    "language": "ko",
+    "label": "경제",
+    "group_id": "G-ECO-02",
+    "summary": "시내버스 요금이 100원 올랐고 첫 주 승객 수는 이전 주와 거의 같았다.",
+    "status": "ready"
+  },
+  {
+    "doc_id": "ECO-02-COPY",
+    "source_path": "eco02_ko_copy.txt",
+    "language": "ko",
+    "label": "경제",
+    "group_id": "G-ECO-02",
+    "summary": "시내버스 요금이 100원 올랐고 첫 주 승객 수는 이전 주와 거의 같았다.",
+    "status": "ready"
+  },
+  {
+    "doc_id": "ECO-03",
+    "source_path": "eco03_ko.txt",
+    "language": "ko",
+    "label": "경제",
+    "group_id": "G-ECO-03",
+    "summary": "은행이 새 보통예금 계좌에 적용할 금리를 연 1.0%에서 1.2%로 올렸다.",
+    "status": "ready"
+  },
+  {
+    "doc_id": "SPT-01",
+    "source_path": "spt01_ko.txt",
+    "language": "ko",
+    "label": "스포츠",
+    "group_id": "G-SPT-01",
+    "summary": "여자 농구팀이 4쿼터에 역전해 홈 경기에서 72대 68로 이겼다.",
+    "status": "ready"
+  },
+  {
+    "doc_id": "SPT-02",
+    "source_path": "spt02_en.txt",
+    "language": "en",
+    "label": "스포츠",
+    "group_id": "G-SPT-02",
+    "summary": "A river-route marathon had 2,400 finishers, and the winner finished in 2 hours and 14 minutes.",
+    "status": "ready"
+  },
+  {
+    "doc_id": "SPT-03",
+    "source_path": "spt03_ko.txt",
+    "language": "ko",
+    "label": "스포츠",
+    "group_id": "G-SPT-03",
+    "summary": "학교 축구팀이 1대 1로 끝난 결승전의 승부차기에서 이겼다.",
+    "status": "ready"
+  },
+  {
+    "doc_id": "SPT-03-FRAG",
+    "source_path": "spt03_ko_fragment.txt",
+    "language": "ko",
+    "label": "스포츠",
+    "group_id": "G-SPT-03",
+    "summary": "학교 축구팀이 1대 1로 끝난 결승전의 승부차기에서 이겼다.",
+    "status": "ready"
+  },
+  {
+    "doc_id": "HOLD-01",
+    "source_path": "hold_mixed_ko.txt",
+    "language": "ko",
+    "label": null,
+    "group_id": "G-HOLD-01",
+    "summary": null,
+    "status": "hold"
+  },
+  {
+    "doc_id": "EMPTY-01",
+    "source_path": "empty_ko.txt",
+    "language": "ko",
+    "label": null,
+    "group_id": "G-EMPTY-01",
+    "summary": null,
+    "status": "empty"
+  },
+  {
+    "doc_id": "BAD-UTF8-01",
+    "source_path": "broken_utf8.txt",
+    "language": "en",
+    "label": null,
+    "group_id": "G-ERROR-01",
+    "summary": null,
+    "status": "read_error"
+  }
+]

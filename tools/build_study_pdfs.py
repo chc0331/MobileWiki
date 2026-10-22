@@ -308,7 +308,12 @@ class CodeBlock(Flowable):
         c.roundRect(0, 0, self.width, self.height, 5, stroke=0, fill=1)
         c.setFillColor(TEAL)
         c.setFont("KSans", 8)
-        label = "Python 실습" if self.language == "python" else "예상 출력"
+        if self.language == "python":
+            label = "Python 실습"
+        elif self.language in {"sh", "bash", "shell"}:
+            label = "실행 명령"
+        else:
+            label = "예상 출력"
         if self.continuation:
             label += " / 계속"
         c.drawString(13, self.height - 17, label)
@@ -455,11 +460,14 @@ def plan_styles(st):
 def table_flow(rows: list[list[str]], st, width=CONTENT_W):
     headers, n = rows[0], len(rows[0])
     worksheet = "내 판단" in headers
+    chapter2_worksheet = headers == ["확인할 것", "실행 전 예상", "실행 결과와 근거"]
     cluster_worksheet = headers == ["설정", "문서들을 묶은 결과", "대표 문서·핵심어·그룹 이름"]
     if cluster_worksheet:
         ratios = [0.12, 0.40, 0.48]
     elif worksheet:
         ratios = [0.07, 0.47, 0.15, 0.31]
+    elif chapter2_worksheet:
+        ratios = [0.36, 0.21, 0.43]
     elif n == 4:
         ratios = [0.09, 0.34, 0.15, 0.42]
     elif n == 6:
@@ -476,6 +484,8 @@ def table_flow(rows: list[list[str]], st, width=CONTENT_W):
         ratios = [0.25, 0.38, 0.37]
     elif n == 2 and headers[0] == "상황":
         ratios = [0.58, 0.42]
+    elif n == 2 and headers == ["필드", "뜻"]:
+        ratios = [0.43, 0.57]
     elif n == 2 and headers[-1] == "라벨":
         ratios = [0.80, 0.20]
     elif n == 2:
@@ -485,7 +495,7 @@ def table_flow(rows: list[list[str]], st, width=CONTENT_W):
     data = [[Paragraph(inline(cell), st["thead"] if r == 0 else st["table"])
              for cell in row] for r, row in enumerate(rows)]
     empty_writing = n == 2 and headers[-1] == "내가 정한 내용"
-    row_height = 86 if cluster_worksheet else (43 if worksheet or empty_writing else 0)
+    row_height = 86 if cluster_worksheet else (65 if chapter2_worksheet else (43 if worksheet or empty_writing else 0))
     minimum = [0] + [row_height] * (len(rows) - 1)
     table = LongTable(
         data, colWidths=[width * ratio for ratio in ratios],
@@ -534,21 +544,21 @@ def parse_markdown(source: Path, st, *, plan=False, width=CONTENT_W):
                 continue
             previous_heading = bool(story and getattr(story[-1], "is_section_heading", False))
             new_part = any(part in title for part in (
-                "실습 1 ", "실습과 확인 문제 해설", "선택 실습", "완료 확인",
+                "실습 1 ", "확인 문제", "선택 실습", "완료 확인",
             ))
             if is_lesson and level == 2 and new_part:
                 story.append(PageBreak())
             elif not previous_heading and level > 1:
                 story.append(CondPageBreak((150 if level == 2 else 90) if plan else (100 if level == 2 else 70)))
             learning_cue = level == 4 and title.startswith((
-                "핵심 질문", "함께 풀기", "직접 해보기", "결과와 해석", "핵심 정리",
+                "핵심 질문", "함께 풀기", "직접 해보기", "직접 해보고", "결과와 해석", "핵심 정리",
             ))
             p = Paragraph(inline(title), st["cue"] if learning_cue else st[f"h{level}"])
             p.is_section_heading = True
             if level in (2, 3):
                 p.heading_level = level
                 p.heading_text = plain(title)
-                p.toc_include = level == 2 or (is_lesson and title.startswith("8.4 "))
+                p.toc_include = level == 2
             story.append(p)
             units.append(plain(title))
             i += 1
@@ -560,8 +570,11 @@ def parse_markdown(source: Path, st, *, plan=False, width=CONTENT_W):
             while i < len(lines) and not lines[i].startswith("```"):
                 code.append(lines[i])
                 i += 1
+            block = CodeBlock(code, language)
             before = Spacer(1, 6)
-            story.extend([before, CodeBlock(code, language), Spacer(1, 12)])
+            if block.height <= 340:
+                story.append(CondPageBreak(block.height + 18))
+            story.extend([before, block, Spacer(1, 12)])
             units.extend(item for item in code if item.strip())
             i += 1
             continue
@@ -578,7 +591,7 @@ def parse_markdown(source: Path, st, *, plan=False, width=CONTENT_W):
             if j < len(lines) and re.match(r"^\*그림 .+\*$", lines[j]):
                 caption = lines[j][1:-1]
                 block.append(Paragraph(inline(caption), st["caption"]))
-                units.append(caption)
+                units.append(plain(caption))
                 i = j + 1
             else:
                 i += 1
@@ -647,7 +660,7 @@ def parse_markdown(source: Path, st, *, plan=False, width=CONTENT_W):
             text = text[1:-1]
         style = st["material"] if plan and text.startswith(("**교재 PDF:**", "**예정 PDF:**")) else st["body"]
         p = Paragraph(inline(text), style)
-        if text.endswith(":"):
+        if text.endswith(":") or re.match(r"^\*\*\d+\. 질문:\*\*", text):
             p.keepWithNext = True
         story.append(p)
         units.append(plain(text))

@@ -1,0 +1,3 @@
+The team updated automatic screen brightness to extend battery life on a new phone. It compared the old and new versions under the same conditions.
+
+In a video playback test, the new version lasted 40 minutes longer on average. Only three phones took part in the test.

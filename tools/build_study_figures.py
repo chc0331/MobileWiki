@@ -110,8 +110,8 @@ def save(image, relative_path):
 def learning_path():
     image, draw = canvas(310)
     stages = [
-        ("Chapter 1~6", "기초·군집화\n설계 학습", "이론·실습·평가"),
-        ("POC A", "군집 모델\n설계 검증", "PC 시제품"),
+        ("Chapter 1~6", "기초·분류\n설계 학습", "이론·실습·평가"),
+        ("POC A", "분류 모델\n설계 검증", "PC 시제품"),
         ("Chapter 7", "요약 모델\n설계 학습", "이론·실습·평가"),
         ("POC B", "요약 모델\n설계 검증", "PC 시제품"),
         ("Chapter 8", "Android\n배포 학습", "이론·실습·평가"),
@@ -258,14 +258,105 @@ def on_device_flow():
         else:
             phone_icon(draw, center - 40, 252, width=80, height=124)
         title = ["PC·Colab", "배포 묶음", "Android 앱"][i]
-        detail = ["요약 모델 준비\n군집 중심 계산", "모델·tokenizer\n전처리·군집 중심", "같은 전처리로\n요약·군집 배정"][i]
+        detail = ["분류·요약 모델 준비\n라벨 기준 확정", "모델·tokenizer\n전처리·라벨 정보", "같은 전처리로\n분류·요약 실행"][i]
         txt(draw, (center, 428), title, 46, True, NAVY, anchor="mt")
         paragraph(draw, (x1 + 26, 510, x2 - x1 - 52), detail, 40, False, INK, align="center", line_height=56)
         if i < 2:
             arrow(draw, (x2 + 13, 432), (positions[i + 1][0] - 13, 432))
-    txt(draw, (800, 741), "모델·군집 준비와 문서 분석의 실행 위치를 구분합니다.", 40, True, NAVY, anchor="mm")
+    txt(draw, (800, 741), "모델 준비와 문서 분석의 실행 위치를 구분합니다.", 40, True, NAVY, anchor="mm")
     txt(draw, (800, 825), "모델 다운로드와 사용자 문서 분석은 별개의 과정입니다.", 38, False, MUTED, anchor="mm")
     save(image, "study/assets/on_device_flow.png")
+
+
+def chapter2_data_pipeline():
+    image, draw = canvas(800)
+    heading(draw, "문서 파일에서 실습용 수치 배열까지")
+    stages = [
+        ("1  글자 추출", "TXT 또는 글자를\n선택할 수 있는 PDF", "파일에서 글자를 읽는다"),
+        ("2  원문 보존", "추출한 글자를\n그대로 따로 둔다", "원본과 대조할 기준"),
+        ("3  정리·기록", "정리본과 문서 ID·\n출처·언어·라벨 기록", "바뀐 곳을 확인한다"),
+        ("4  묶음 분리", "원문 묶음을\n통째로 나눈다", "자료 누출 방지"),
+        ("5  배열 만들기", "같은 단위의 수치를\n행과 열로 놓는다", "예: 문단별 글자 수"),
+    ]
+    width, gap = 270, 29
+    for index, (title, detail, purpose) in enumerate(stages):
+        x = 64 + index * (width + gap)
+        card(draw, (x, 185, x + width, 592), fill=LIGHT if index in (1, 3) else CREAM)
+        txt(draw, (x + 18, 221), title, 32, True, NAVY, anchor="lt")
+        draw.line((x + 18, 277, x + width - 18, 277), fill=LINE, width=2)
+        paragraph(draw, (x + 18, 315, width - 36), detail, 33, False, INK, line_height=50)
+        paragraph(draw, (x + 18, 503, width - 36), purpose, 29, True, TEAL, line_height=42)
+        if index < len(stages) - 1:
+            arrow(draw, (x + width + 4, 387), (x + width + gap - 5, 387), width=5)
+    card(draw, (64, 646, 1536, 746), fill=WHITE, outline=LINE)
+    txt(draw, (800, 693), "이미지로만 된 PDF는 이 장의 글자 추출 방법으로 읽을 수 없습니다.", 36, True, NAVY, anchor="mm")
+    save(image, "study/chapter2/assets/data_pipeline.png")
+
+
+def chapter2_numpy_axes():
+    image, draw = canvas(1130)
+    heading(draw, "NumPy 배열: 문서 3개 × 문단 2개의 글자 수")
+    card(draw, (64, 153, 1536, 254), fill=CREAM)
+    txt(draw, (800, 203), "모든 칸의 단위는 글자 수 · 손으로 만든 2문단 예제", 38, True, NAVY, anchor="mm")
+
+    x_edges = [105, 353, 638, 923]
+    y_edges = [332, 430, 548, 666, 784]
+    headers = ["문서", "문단 1", "문단 2"]
+    for column, label in enumerate(headers):
+        x1, x2 = x_edges[column], x_edges[column + 1]
+        card(draw, (x1, y_edges[0], x2, y_edges[1]), fill=NAVY, radius=9)
+        txt(draw, ((x1 + x2) / 2, (y_edges[0] + y_edges[1]) / 2), label, 37, True, WHITE, anchor="mm")
+    rows = [("A", 12, 8), ("B", 5, 7), ("C", 9, 4)]
+    for row_index, row in enumerate(rows, start=1):
+        y1, y2 = y_edges[row_index], y_edges[row_index + 1]
+        for column, value in enumerate(row):
+            x1, x2 = x_edges[column], x_edges[column + 1]
+            card(draw, (x1, y1, x2, y2), fill=LIGHT if column == 0 else WHITE, outline=LINE, radius=9)
+            txt(draw, ((x1 + x2) / 2, (y1 + y2) / 2), str(value), 47, column > 0, NAVY, anchor="mm")
+
+    card(draw, (1010, 332, 1536, 784), fill=CREAM, outline=LINE)
+    txt(draw, (1273, 368), "axis=1 → 행 안에서 합", 36, True, TEAL, anchor="mt")
+    txt(draw, (1273, 424), "문서마다 한 값", 32, False, MUTED, anchor="mt")
+    for row_index, (label, left, right) in enumerate(rows):
+        y = (y_edges[row_index + 1] + y_edges[row_index + 2]) / 2
+        txt(draw, (1273, y), f"{label}: {left} + {right} = {left + right}", 38, True, NAVY, anchor="mm")
+
+    card(draw, (353, 836, 923, 1006), fill=LIGHT, outline=LINE)
+    txt(draw, (638, 868), "axis=0 ↓ 문서 방향으로 합", 37, True, TEAL, anchor="mt")
+    txt(draw, (493, 959), "12 + 5 + 9 = 26", 34, True, NAVY, anchor="mm")
+    txt(draw, (788, 959), "8 + 7 + 4 = 19", 34, True, NAVY, anchor="mm")
+    txt(draw, (800, 1070), "shape=(3, 2): 행은 문서 3개, 열은 문단 2개입니다.", 37, True, NAVY, anchor="mm")
+    save(image, "study/chapter2/assets/numpy_axes.png")
+
+
+def chapter2_group_split():
+    image, draw = canvas(1090)
+    heading(draw, "같은 원문에서 나온 자료는 함께 나누기")
+    card(draw, (64, 150, 780, 374), fill=LIGHT, outline=LINE)
+    txt(draw, (99, 182), "원문 묶음 G-IT-01", 41, True, NAVY, anchor="lt")
+    txt(draw, (99, 251), "IT-01 원문", 37, False, INK, anchor="lt")
+    txt(draw, (99, 310), "IT-01-EN 영어 번역본", 37, False, INK, anchor="lt")
+    card(draw, (820, 150, 1536, 374), fill=CREAM, outline=LINE)
+    txt(draw, (855, 182), "원문 묶음 G-ECO-02", 41, True, NAVY, anchor="lt")
+    txt(draw, (855, 251), "ECO-02 원문", 37, False, INK, anchor="lt")
+    txt(draw, (855, 310), "ECO-02-COPY 복사본", 37, False, INK, anchor="lt")
+    txt(draw, (800, 428), "원문·번역본·조각·복사본에 같은 묶음 ID를 붙입니다.", 37, True, NAVY, anchor="mm")
+
+    columns = [
+        ("학습", "01 묶음", "G-IT-01\nG-ECO-01\nG-SPT-01", LIGHT),
+        ("검증", "02 묶음", "G-IT-02\nG-ECO-02\nG-SPT-02", CREAM),
+        ("최종 평가", "03 묶음", "G-IT-03\nG-ECO-03\nG-SPT-03", "#EEF0F7"),
+    ]
+    for i, (title, family, groups, fill) in enumerate(columns):
+        x = 64 + i * 504
+        card(draw, (x, 498, x + 464, 897), fill=fill, outline=LINE)
+        txt(draw, (x + 232, 531), title, 43, True, NAVY, anchor="mt")
+        txt(draw, (x + 232, 604), family, 36, True, TEAL, anchor="mt")
+        draw.line((x + 28, 673, x + 436, 673), fill=LINE, width=2)
+        paragraph(draw, (x + 28, 701, 408), groups, 36, False, INK, align="center", line_height=56)
+    txt(draw, (800, 966), "같은 묶음 ID가 둘 이상의 칸에 나타나면 자료 누출입니다.", 38, True, TEAL, anchor="mm")
+    txt(draw, (800, 1031), "이 9개 묶음은 분리 원리 연습용이며 성능 평가용 표본은 아닙니다.", 34, False, MUTED, anchor="mm")
+    save(image, "study/chapter2/assets/group_split.png")
 
 
 if __name__ == "__main__":
@@ -276,3 +367,6 @@ if __name__ == "__main__":
     dataset_split()
     document_tasks()
     on_device_flow()
+    chapter2_data_pipeline()
+    chapter2_numpy_axes()
+    chapter2_group_split()
