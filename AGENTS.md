@@ -68,12 +68,24 @@ study/
 │   ├── Python·NumPy와_문서_데이터_처리.pdf
 │   ├── assets/
 │   └── examples/
-└── chapter3/
-    ├── 기초_수학과_전통적_머신러닝.md
-    ├── 기초_수학과_전통적_머신러닝.pdf
+├── chapter3/
+│   ├── 기초_수학과_전통적_머신러닝.md
+│   ├── 기초_수학과_전통적_머신러닝.pdf
+│   ├── assets/
+│   ├── examples/
+│   └── requirements.txt
+├── chapter4/
+│   ├── 딥러닝_기초와_PyTorch.md
+│   ├── 딥러닝_기초와_PyTorch.pdf
+│   ├── assets/
+│   ├── examples/
+│   └── requirements.txt
+└── chapter5/
+    ├── 자연어_처리와_사전학습_모델_이해.md
+    ├── 자연어_처리와_사전학습_모델_이해.pdf
     ├── assets/
     ├── examples/
     └── requirements.txt
 ```
 
-Chapter 4 이후의 과목도 로드맵의 번호와 과목명에 따라 같은 규칙으로 작성한다.
+Chapter 6 이후의 과목도 로드맵의 번호와 과목명에 따라 같은 규칙으로 작성한다.

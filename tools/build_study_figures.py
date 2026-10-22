@@ -405,6 +405,112 @@ def chapter3_tfidf_fit_transform():
     save(image, "study/chapter3/assets/tfidf_fit_transform.png")
 
 
+def chapter4_network_flow():
+    image, draw = canvas(810)
+    heading(draw, "같은 문서 벡터를 신경망에 넣으면 무엇이 달라질까요?")
+    boxes = [(64, 380), (460, 790), (870, 1200), (1280, 1536)]
+    items = [
+        ("문서 벡터", "[B, V]\nB: 문서 수\nV: 학습 어휘 수"),
+        ("Linear + ReLU", "[B, 8]\n학습한 가중치로\n8개 중간 값 계산"),
+        ("Linear", "[B, 3]\n종류마다\n로짓 하나 계산"),
+        ("예측", "[B]\n가장 큰 점수의\n라벨 번호 선택"),
+    ]
+    for i, ((left, right), (title, detail)) in enumerate(zip(boxes, items)):
+        card(draw, (left, 226, right, 518), fill=LIGHT if i in (1, 2) else CREAM, outline=LINE)
+        paragraph(draw, (left + 16, 254, right - left - 32), title, 36, True, NAVY, align="center")
+        paragraph(draw, (left + 16, 335, right - left - 32), detail, 31, align="center", line_height=47)
+        if i < 3:
+            arrow(draw, (right + 10, 380), (boxes[i + 1][0] - 8, 380), width=5)
+    card(draw, (64, 574, 1536, 734), fill=WHITE, outline=LINE)
+    paragraph(draw, (100, 604, 1400), "실습의 은닉층 크기는 8입니다. 학습 중에는 ReLU 뒤에 Dropout을 적용합니다.\nTF-IDF 입력에서 이미 빠진 단어 순서는 층을 늘려도 복구되지 않습니다.", 35, align="center", line_height=59)
+    save(image, "study/chapter4/assets/network_shapes.png")
+
+
+def chapter4_training_cycle():
+    image, draw = canvas(900)
+    heading(draw, "학습 한 바퀴: 예측에서 가중치 갱신까지")
+    columns = [(64, 376), (456, 768), (848, 1160), (1240, 1536)]
+    for i, ((left, right), title, detail) in enumerate(zip(columns,
+            ["순전파", "손실", "역전파", "갱신"],
+            ["문서 벡터 → 로짓\n현재 가중치 사용", "로짓 + 정답 라벨\n정답에 준 값 점검", "loss.backward()\n가중치별 기울기", "optimizer.step()\n기울기로 숫자 수정"])):
+        card(draw, (left, 224, right, 460), fill=LIGHT if i % 2 == 0 else CREAM, outline=LINE)
+        txt(draw, ((left + right) / 2, 256), title, 39, True, NAVY, anchor="mt")
+        paragraph(draw, (left + 12, 342, right - left - 24), detail, 30, align="center", line_height=46)
+        if i < 3:
+            arrow(draw, (right + 9, 340), (columns[i + 1][0] - 9, 340), width=5)
+    draw.line([(1388, 490), (1388, 535), (220, 535), (220, 490)], fill=TEAL, width=5)
+    draw.polygon(((220, 470), (207, 493), (233, 493)), fill=TEAL)
+    txt(draw, (800, 567), "다음 배치: zero_grad()로 이전 기울기를 지운 뒤 반복", 35, True, TEAL, anchor="mt")
+    card(draw, (64, 671, 1536, 830), fill=WHITE, outline=LINE)
+    paragraph(draw, (96, 701, 1400), "검증: model.eval() + torch.no_grad()로 결과를 계산합니다.\n검증 자료에서는 backward()와 step()을 실행하지 않습니다.", 35, align="center", line_height=57)
+    save(image, "study/chapter4/assets/training_cycle.png")
+
+
+def chapter5_representation_flow():
+    image, draw = canvas(1030)
+    heading(draw, "문자열에서 문맥 표현과 작업별 출력까지")
+    rows = [
+        ("문자열", "배터리 충전 시간이 줄었다.", "UTF-8 파일에서 읽은 글자"),
+        ("토큰과 ID", "조각마다 정해진 정수 번호", "모델과 짝이 맞는 토크나이저"),
+        ("입력 임베딩", "[B, L, H]의 토큰별 벡터", "위치 정보와 패딩 마스크도 준비"),
+        ("문맥 표현", "주변 토큰을 반영한 새 벡터", "Transformer의 어텐션·계산 층"),
+        ("작업별 출력", "분류: 종류별 로짓 / 생성: 다음 토큰 로짓", "출력 층과 학습 목적에 따라 다름"),
+    ]
+    for i, (title, detail, note) in enumerate(rows):
+        y = 170 + i * 159
+        card(draw, (64, y, 1536, y + 121), fill=LIGHT if i in (2, 3) else CREAM, outline=LINE)
+        paragraph(draw, (91, y + 38, 270), title, 35, True, NAVY)
+        paragraph(draw, (375, y + 21, 1110), detail, 35, True)
+        paragraph(draw, (375, y + 72, 1110), note, 31, fill=MUTED)
+        if i < len(rows) - 1:
+            draw.line((800, y + 124, 800, y + 145), fill=TEAL, width=5)
+            draw.polygon(((800, y + 157), (788, y + 141), (812, y + 141)), fill=TEAL)
+    txt(draw, (800, 986), "B: 문서 수 / L: 토큰 수 / H: 토큰 벡터의 칸 수", 32, False, MUTED, anchor="mt")
+    save(image, "study/chapter5/assets/representation_flow.png")
+
+
+def chapter5_model_roles():
+    image, draw = canvas(1010)
+    heading(draw, "비슷한 Transformer도 학습 목적과 출력이 다릅니다")
+    items = [
+        ("인코더 중심", "전체 입력 → 문맥 표현 → 분류 층", "가려진 토큰 복원 등으로 사전학습\n분류 라벨은 별도 학습이 필요합니다."),
+        ("디코더 중심", "입력 + 앞서 만든 토큰 → 다음 토큰", "이전 토큰에서 다음 토큰 예측\n아직 만들지 않은 미래 토큰은 볼 수 없습니다."),
+        ("인코더-디코더", "입력 읽기 → 출력을 한 토큰씩 생성", "입력과 출력의 길이가 달라도 처리\n요약·번역에 맞는 추가학습이 필요합니다."),
+    ]
+    for i, (title, flow, detail) in enumerate(items):
+        y = 176 + i * 253
+        card(draw, (64, y, 1536, y + 215), fill=LIGHT if i == 1 else CREAM, outline=LINE)
+        paragraph(draw, (92, y + 26, 340), title, 37, True, NAVY)
+        paragraph(draw, (480, y + 26, 1000), flow, 37, True, TEAL)
+        paragraph(draw, (480, y + 97, 1000), detail, 33, line_height=49)
+    txt(draw, (800, 962), "구조 이름만으로 내 문서의 분류·요약 품질을 알 수는 없습니다.", 34, True, NAVY, anchor="mt")
+    save(image, "study/chapter5/assets/model_roles.png")
+
+
+def chapter5_long_document():
+    image, draw = canvas(885)
+    heading(draw, "긴 문서: 잘린 근거와 겹치는 조각을 확인하세요")
+    for i, label in enumerate(["원문 앞부분", "원문 중간", "중요한 뒷부분"]):
+        left = 350 + i * 395
+        card(draw, (left, 202, left + 365, 302), fill=CREAM, outline=LINE)
+        txt(draw, (left + 182, 235), label, 34, True, NAVY, anchor="mt")
+    txt(draw, (64, 235), "전체 원문", 35, True, NAVY, anchor="lt")
+    txt(draw, (64, 383), "앞부분만 입력", 35, True, NAVY, anchor="lt")
+    card(draw, (350, 350, 925, 452), fill=LIGHT, outline=TEAL)
+    txt(draw, (637, 385), "입력 한도까지만 전달", 34, True, TEAL, anchor="mt")
+    txt(draw, (1215, 385), "뒷부분 근거는 빠짐", 33, False, MUTED, anchor="mt")
+    txt(draw, (64, 545), "조각으로 나누기", 34, True, NAVY, anchor="lt")
+    card(draw, (350, 514, 1010, 607), fill=LIGHT, outline=TEAL)
+    txt(draw, (680, 543), "조각 1", 34, True, TEAL, anchor="mt")
+    card(draw, (858, 632, 1505, 725), fill=CREAM, outline=TEAL)
+    txt(draw, (1180, 659), "조각 2", 34, True, TEAL, anchor="mt")
+    draw.line((858, 511, 858, 727), fill=LINE, width=3)
+    draw.line((1010, 511, 1010, 727), fill=LINE, width=3)
+    txt(draw, (933, 737), "겹침", 29, False, MUTED, anchor="mt")
+    txt(draw, (800, 813), "조각별 분류 점수의 평균은 학습용 규칙입니다. 전체 문맥을 복원하지는 않습니다.", 32, True, NAVY, anchor="mt")
+    save(image, "study/chapter5/assets/long_document.png")
+
+
 if __name__ == "__main__":
     learning_path()
     model_flow()
@@ -417,3 +523,8 @@ if __name__ == "__main__":
     chapter2_numpy_axes()
     chapter2_group_split()
     chapter3_tfidf_fit_transform()
+    chapter4_network_flow()
+    chapter4_training_cycle()
+    chapter5_representation_flow()
+    chapter5_model_roles()
+    chapter5_long_document()

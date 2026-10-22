@@ -167,7 +167,9 @@ def inline(text: str) -> str:
         parts.append(escaped(text[last:match.start()]))
         token = match.group()
         if token.startswith("`"):
-            parts.append(f'<font name="KSans" color="#167D8D">{html.escape(token[1:-1])}</font>')
+            # The SentencePiece whitespace marker is absent from the Korean font.
+            code = html.escape(token[1:-1]).replace("▁", '<font name="Code">▁</font>')
+            parts.append(f'<font name="KSans" color="#167D8D">{code}</font>')
         elif token.startswith("**"):
             parts.append(f'<b>{inline(token[2:-2])}</b>')
         else:
@@ -470,6 +472,20 @@ def table_flow(rows: list[list[str]], st, width=CONTENT_W):
         ratios = [0.36, 0.21, 0.43]
     elif headers == ["구분", "배터리 수명 안내", "경기 결과 안내", "왜 다른가요?"]:
         ratios = [0.20, 0.21, 0.21, 0.38]
+    elif headers == ["중간 칸", "입력에 곱할 가중치", "편향", "계산 결과"]:
+        ratios = [0.14, 0.28, 0.12, 0.46]
+    elif headers == ["입력 `[x1, x2]`", "`[h1, h2]`", "합", "결과"]:
+        ratios = [0.30, 0.30, 0.15, 0.25]
+    elif headers == ["부분", "가중치 수", "편향 수", "합계"]:
+        ratios = [0.36, 0.30, 0.17, 0.17]
+    elif headers == ["문장", "글자 수", "UTF-8 바이트 수", "토큰 수"]:
+        ratios = [0.58, 0.12, 0.18, 0.12]
+    elif headers == ["참조할 토큰", "가져올 정보 벡터", "혼합 비중", "곱한 값"]:
+        ratios = [0.21, 0.30, 0.19, 0.30]
+    elif headers == ["단계", "이미 만든 출력", "후보 값의 예", "선택"]:
+        ratios = [0.10, 0.25, 0.50, 0.15]
+    elif headers == ["조각", "IT", "경제", "스포츠"]:
+        ratios = [0.25, 0.25, 0.25, 0.25]
     elif n == 4:
         ratios = [0.09, 0.34, 0.15, 0.42]
     elif n == 6:
@@ -494,7 +510,8 @@ def table_flow(rows: list[list[str]], st, width=CONTENT_W):
         ratios = [0.32, 0.68]
     else:
         ratios = [1 / n] * n
-    data = [[Paragraph(inline(cell), st["thead"] if r == 0 else st["table"])
+    data = [[Paragraph(inline(cell).replace('color="#167D8D"', 'color="#FFFFFF"')
+                       if r == 0 else inline(cell), st["thead"] if r == 0 else st["table"])
              for cell in row] for r, row in enumerate(rows)]
     empty_writing = n == 2 and headers[-1] == "내가 정한 내용"
     row_height = 86 if cluster_worksheet else (65 if chapter2_worksheet else (43 if worksheet or empty_writing else 0))
@@ -549,7 +566,8 @@ def parse_markdown(source: Path, st, *, plan=False, width=CONTENT_W):
                 "실습 1 ", "확인 문제", "선택 실습", "완료 확인",
             ))
             if is_lesson and level == 2 and new_part:
-                story.append(PageBreak())
+                # Avoid leaving only a short closing paragraph before the questions.
+                story.append(CondPageBreak(340) if "확인 문제" in title else PageBreak())
             elif not previous_heading and level > 1:
                 story.append(CondPageBreak((150 if level == 2 else 90) if plan else (100 if level == 2 else 70)))
             learning_cue = level == 4 and title.startswith((

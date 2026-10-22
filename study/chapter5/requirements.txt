@@ -1,0 +1,3 @@
+-r ../chapter4/requirements.txt
+transformers>=4.48,<5
+sentencepiece>=0.2,<0.3
