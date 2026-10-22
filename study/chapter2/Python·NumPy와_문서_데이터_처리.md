@@ -69,7 +69,7 @@ print(record["doc_id"], paragraph_count(record["paragraphs"]))
 
 ### 3.1 파일의 바이트와 화면의 글자는 다릅니다
 
-파일에는 바이트가 저장됩니다. 바이트를 글자로 해석하는 규칙을 **문자 인코딩(character encoding)**이라고 합니다. 이 실습의 TXT 입력은 한국어·영어 모두 UTF-8로 저장합니다. 한글이 있는 파일을 잘못된 인코딩으로 읽으면 오류가 나거나 글자가 깨질 수 있습니다.
+텍스트를 저장할 때 글자를 바이트로 바꾸는 과정을 **인코딩(encoding)**이라고 합니다. 문자와 바이트의 대응 규칙은 **문자 인코딩(character encoding)**입니다. **UTF-8**은 이 규칙 중 하나입니다. 파일을 읽을 때는 같은 규칙으로 바이트를 글자로 되돌리며, 이 과정이 **디코딩(decoding)**입니다. 이 실습의 TXT 파일은 한국어와 영어 모두 UTF-8로 저장합니다. 다른 인코딩 규칙으로 읽으면 오류가 나거나 글자가 깨질 수 있습니다.
 
 ```python
 from pathlib import Path
@@ -79,7 +79,7 @@ raw_text = path.read_bytes().decode("utf-8", errors="strict")
 clean_input = raw_text.removeprefix("\ufeff")
 ```
 
-`read_bytes()`는 파일의 바이트를 가져오고 `decode()`는 UTF-8 규칙으로 글자로 바꿉니다. UTF-8 파일 앞에는 **BOM(Byte Order Mark, 파일 맨 앞의 표시)**이 붙을 수 있습니다. `raw_text`에는 이 표시를 남겨 두고 정리용 `clean_input`에서만 제거합니다. 잘못된 바이트를 임의의 다른 글자로 바꾸지 않고 오류를 내는 `errors="strict"`를 사용합니다. `errors="replace"`로 읽으면 어느 글자가 손상됐는지 놓치기 쉽습니다.
+`read_bytes()`는 파일의 바이트를 읽습니다. `.decode("utf-8", errors="strict")`는 그 바이트를 UTF-8 규칙으로 디코딩해 Python 문자열로 바꿉니다. 반대로 Python 문자열을 UTF-8 바이트로 바꾸는 인코딩에는 `.encode("utf-8")`를 씁니다. UTF-8 파일 앞에는 **BOM(Byte Order Mark, 파일 맨 앞의 표시)**이 붙을 수 있습니다. `raw_text`에는 이 표시를 남겨 두고 정리용 `clean_input`에서만 제거합니다. 잘못된 바이트를 임의의 다른 글자로 바꾸지 않고 오류를 내는 `errors="strict"`를 사용합니다. `errors="replace"`로 읽으면 어느 글자가 손상됐는지 놓치기 쉽습니다.
 
 **원본 파일은 보존합니다.** `raw_text`도 파일 바이트 자체가 아니라 디코딩한 글입니다. 원본 바이트가 필요하면 입력 파일을 그대로 보관해야 합니다. 9절의 실습도 입력 파일을 수정하지 않습니다. BOM을 읽는 순간 자동으로 없애고 싶다면 `encoding="utf-8-sig"`로 읽는 방법도 있지만 이 교재의 실습 코드는 전후 비교를 위해 추출 직후 글에 BOM을 남깁니다.
 
