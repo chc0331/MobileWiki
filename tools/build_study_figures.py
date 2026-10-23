@@ -511,6 +511,84 @@ def chapter5_long_document():
     save(image, "study/chapter5/assets/long_document.png")
 
 
+def chapter6_group_split():
+    image, draw = canvas(720)
+    heading(draw, "원문 묶음으로 나누고 번역본을 함께 둡니다")
+    labels = [("학습", "범위 안 18묶음", "한·영 36문서"),
+              ("검증", "범위 안 6 + 범위 밖 3묶음", "한·영 18문서"),
+              ("최종 평가", "범위 안 6 + 범위 밖 3묶음", "한·영 18문서")]
+    for i, (title, count, docs) in enumerate(labels):
+        left = 64 + i * 508
+        card(draw, (left, 180, left + 470, 512), fill=LIGHT if i == 0 else CREAM, outline=LINE)
+        txt(draw, (left + 235, 215), title, 42, True, NAVY, anchor="mt")
+        paragraph(draw, (left + 25, 295, 420), count, 32, align="center")
+        txt(draw, (left + 235, 391), docs, 35, True, TEAL, anchor="mt")
+        txt(draw, (left + 235, 452), "한국어 ↔ 영어: 같은 묶음", 29, False, MUTED, anchor="mt")
+    paragraph(draw, (80, 568, 1440), "같은 원문의 번역·수정·분할 조각은 경계를 넘지 않습니다.\n검증으로 선택을 마친 뒤 최종 평가의 결과를 확인합니다.", 34, align="center")
+    save(image, "study/chapter6/assets/group_split.png")
+
+
+def chapter6_model_comparison():
+    image, draw = canvas(830)
+    heading(draw, "표현은 달라도 문서·라벨·평가 기준은 맞춥니다")
+    for y, title, steps in [
+        (190, "TF-IDF 기준선", ["전체 문서", "학습 어휘·IDF", "단어별 벡터", "로지스틱 회귀"]),
+        (430, "고정 인코더", ["문단·토큰 분할", "문맥 벡터·풀링", "조각 벡터 평균", "학습한 분류 층"]),
+    ]:
+        txt(draw, (70, y), title, 35, True, NAVY, anchor="lt")
+        for i, label in enumerate(steps):
+            left = 70 + i * 385
+            card(draw, (left, y + 66, left + 315, y + 180), fill=LIGHT if i == 3 else CREAM, outline=LINE)
+            paragraph(draw, (left + 15, y + 99, 285), label, 32, True, align="center")
+            if i < 3:
+                arrow(draw, (left + 324, y + 122), (left + 374, y + 122), width=5)
+    paragraph(draw, (80, 690, 1440), "같은 학습 라벨 → 종류별 점수 → 같은 검증 문서에서 비교\n인코더 본체를 고정해도 추론의 연산·메모리 비용은 남습니다.", 34, align="center")
+    save(image, "study/chapter6/assets/model_comparison.png")
+
+
+def chapter6_confusion_matrix():
+    image, draw = canvas(930)
+    heading(draw, "혼동행렬: IT 열과 실제 IT 행의 분모를 읽습니다")
+    columns = ["실제 / 결정", "IT", "경제", "스포츠", "보류"]
+    rows = [("IT", [3, 1, 0, 1]), ("경제", [1, 2, 1, 0]),
+            ("스포츠", [0, 0, 2, 1]), ("범위 밖", [1, 1, 0, 2])]
+    widths = [360, 280, 280, 280, 280]
+    x = 60
+    for j, (label, width) in enumerate(zip(columns, widths)):
+        card(draw, (x, 174, x + width - 6, 264), fill=NAVY, radius=8)
+        txt(draw, (x + width / 2, 195), label, 34, True, WHITE, anchor="mt")
+        for i, (truth, values) in enumerate(rows):
+            y = 270 + i * 100
+            card(draw, (x, y, x + width - 6, y + 94),
+                 fill=LIGHT if i == 0 or j == 1 else CREAM, outline=LINE, radius=8)
+            txt(draw, (x + width / 2, y + 22), truth if j == 0 else str(values[j - 1]),
+                37 if j == 0 else 44, j == 1 or i == 0, NAVY, anchor="mt")
+        x += width
+    paragraph(draw, (80, 718, 1440), "IT 정밀도: IT라고 예측한 5개 중 정답 3개 = 60%\nIT 재현율: 실제 IT 5개 중 정답 3개 = 60%", 36, True, align="center")
+    txt(draw, (800, 858), "범위 밖 → IT도 오답입니다. 실제 IT → 보류도 놓친 문서입니다.", 32, False, MUTED, anchor="mt")
+    save(image, "study/chapter6/assets/confusion_matrix.png")
+
+
+def chapter6_hold_decision():
+    image, draw = canvas(790)
+    heading(draw, "보류 기준: 점수와 처리량을 함께 확인합니다")
+    boxes = [(70, 220, "종류별 점수"), (580, 220, "최대 점수와 임계값 비교"), (1090, 220, "자동 분류 또는 보류")]
+    for left, y, text in boxes:
+        card(draw, (left, y, left + 440, y + 135), fill=LIGHT, outline=TEAL)
+        paragraph(draw, (left + 20, y + 41, 400), text, 33, True, align="center")
+    arrow(draw, (520, 287), (565, 287), width=5)
+    arrow(draw, (1030, 287), (1075, 287), width=5)
+    for left, title, detail in [
+        (70, "자동 처리된 문서", "오답 ÷ 자동 처리 수\n범위 밖을 잘못 받은 경우도 오답"),
+        (840, "평가 문서 전체", "보류 수 ÷ 전체 수 = 보류율\n자동 처리 수 ÷ 전체 수 = 처리율"),
+    ]:
+        card(draw, (left, 435, left + 690, 650), fill=CREAM, outline=LINE)
+        txt(draw, (left + 345, 460), title, 36, True, NAVY, anchor="mt")
+        paragraph(draw, (left + 25, 528, 640), detail, 31, align="center")
+    txt(draw, (800, 715), "전부 보류한 경우: 자동 처리 오류 비율은 0%가 아니라 계산 불가입니다.", 31, True, NAVY, anchor="mt")
+    save(image, "study/chapter6/assets/hold_decision.png")
+
+
 if __name__ == "__main__":
     learning_path()
     model_flow()
@@ -528,3 +606,7 @@ if __name__ == "__main__":
     chapter5_representation_flow()
     chapter5_model_roles()
     chapter5_long_document()
+    chapter6_group_split()
+    chapter6_model_comparison()
+    chapter6_confusion_matrix()
+    chapter6_hold_decision()

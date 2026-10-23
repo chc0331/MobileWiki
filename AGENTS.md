@@ -80,12 +80,18 @@ study/
 │   ├── assets/
 │   ├── examples/
 │   └── requirements.txt
-└── chapter5/
-    ├── 자연어_처리와_사전학습_모델_이해.md
-    ├── 자연어_처리와_사전학습_모델_이해.pdf
+├── chapter5/
+│   ├── 자연어_처리와_사전학습_모델_이해.md
+│   ├── 자연어_처리와_사전학습_모델_이해.pdf
+│   ├── assets/
+│   ├── examples/
+│   └── requirements.txt
+└── chapter6/
+    ├── 문서_분류_모델_설계와_평가.md
+    ├── 문서_분류_모델_설계와_평가.pdf
     ├── assets/
     ├── examples/
     └── requirements.txt
 ```
 
-Chapter 6 이후의 과목도 로드맵의 번호와 과목명에 따라 같은 규칙으로 작성한다.
+Chapter 7 이후의 과목도 로드맵의 번호와 과목명에 따라 같은 규칙으로 작성한다.

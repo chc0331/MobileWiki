@@ -1,0 +1,578 @@
+[
+  {
+    "doc_id": "IT-01-ko",
+    "group_id": "IT-01",
+    "language": "ko",
+    "label": "IT",
+    "split": "train",
+    "clean_text": "새 스마트폰은 저전력 프로세서로 배터리 사용 시간을 늘렸다. 개발팀은 앱을 실행할 때 전력 소비와 발열이 줄었다고 설명했다."
+  },
+  {
+    "doc_id": "IT-01-en",
+    "group_id": "IT-01",
+    "language": "en",
+    "label": "IT",
+    "split": "train",
+    "clean_text": "A new smartphone uses a low-power processor to extend battery life. Its developers reported lower energy use and less heat while running apps."
+  },
+  {
+    "doc_id": "IT-02-ko",
+    "group_id": "IT-02",
+    "language": "ko",
+    "label": "IT",
+    "split": "train",
+    "clean_text": "이 기록은 하루 동안 모인 여러 안내를 순서대로 정리한 문서입니다. 첫 부분은 문서를 읽는 방법을 설명합니다. 담당자는 회의실에서 받은 메모와 별도로 제출한 기록을 모았습니다. 작성 시각이 다른 기록도 원래 순서를 유지했습니다. 읽는 사람은 첫 문장만 보고 문서 전체의 주제를 정하지 말아야 합니다.\n\n중간 안내에는 참석 확인과 문서 보관 절차가 적혀 있습니다. 자료를 읽은 뒤에는 각 문단의 역할을 구분합니다. 공통 안내와 실제 사건을 설명하는 문단은 서로 역할이 다릅니다. 표제나 파일 이름에는 주제 정보가 없습니다. 마지막 문단에서 무엇이 달라졌고 왜 그 일이 중요한지 확인합니다. 아래 내용이 이 문서에서 분류할 실제 사건입니다.\n\n카메라 소프트웨어가 어두운 장소에서 촬영한 사진의 잡음을 줄인다. 이미지 처리 알고리즘을 바꾼 뒤 작은 글자의 윤곽도 더 잘 보였다."
+  },
+  {
+    "doc_id": "IT-02-en",
+    "group_id": "IT-02",
+    "language": "en",
+    "label": "IT",
+    "split": "train",
+    "clean_text": "This record collects several notices received during one working day. The opening explains how to read the document. A coordinator gathered notes from a meeting room and records submitted separately. Notes written at different times kept their original order. Readers should not decide the subject of the whole document from its first sentence alone. The cover contains no category name, and the file name provides no subject clue.\n\nThe middle notice describes attendance checks and the procedure for storing documents. After reading, distinguish the roles of the individual paragraphs. General instructions serve a different purpose from the paragraph describing the actual event. Keep the information in its original order when reviewing what happened. The final paragraph explains what changed and why the event matters. The text below describes the actual event to classify, while these preceding paragraphs only provide shared reading instructions.\n\nNew camera software removes noise from pictures taken in dark rooms. After an image-processing update, the outlines of small letters became clearer."
+  },
+  {
+    "doc_id": "IT-03-ko",
+    "group_id": "IT-03",
+    "language": "ko",
+    "label": "IT",
+    "split": "train",
+    "clean_text": "개발자가 문서를 인터넷에 보내지 않는 검색 앱을 만들었다. 휴대폰의 저장 공간에서 색인을 읽고 검색 결과를 계산하는 방식이다."
+  },
+  {
+    "doc_id": "IT-03-en",
+    "group_id": "IT-03",
+    "language": "en",
+    "label": "IT",
+    "split": "train",
+    "clean_text": "A developer built a search app that does not send documents to the internet. It reads an index from the phone storage and computes search results locally."
+  },
+  {
+    "doc_id": "IT-04-ko",
+    "group_id": "IT-04",
+    "language": "ko",
+    "label": "IT",
+    "split": "train",
+    "clean_text": "이 기록은 하루 동안 모인 여러 안내를 순서대로 정리한 문서입니다. 첫 부분은 문서를 읽는 방법을 설명합니다. 담당자는 회의실에서 받은 메모와 별도로 제출한 기록을 모았습니다. 작성 시각이 다른 기록도 원래 순서를 유지했습니다. 읽는 사람은 첫 문장만 보고 문서 전체의 주제를 정하지 말아야 합니다.\n\n중간 안내에는 참석 확인과 문서 보관 절차가 적혀 있습니다. 자료를 읽은 뒤에는 각 문단의 역할을 구분합니다. 공통 안내와 실제 사건을 설명하는 문단은 서로 역할이 다릅니다. 표제나 파일 이름에는 주제 정보가 없습니다. 마지막 문단에서 무엇이 달라졌고 왜 그 일이 중요한지 확인합니다. 아래 내용이 이 문서에서 분류할 실제 사건입니다.\n\n무선 이어폰의 펌웨어가 주변 소리를 구분하는 기능을 개선했다. 시험에서는 버스 소음을 줄이면서 안내 방송은 더 잘 들리게 했다."
+  },
+  {
+    "doc_id": "IT-04-en",
+    "group_id": "IT-04",
+    "language": "en",
+    "label": "IT",
+    "split": "train",
+    "clean_text": "This record collects several notices received during one working day. The opening explains how to read the document. A coordinator gathered notes from a meeting room and records submitted separately. Notes written at different times kept their original order. Readers should not decide the subject of the whole document from its first sentence alone. The cover contains no category name, and the file name provides no subject clue.\n\nThe middle notice describes attendance checks and the procedure for storing documents. After reading, distinguish the roles of the individual paragraphs. General instructions serve a different purpose from the paragraph describing the actual event. Keep the information in its original order when reviewing what happened. The final paragraph explains what changed and why the event matters. The text below describes the actual event to classify, while these preceding paragraphs only provide shared reading instructions.\n\nA wireless earphone firmware update improved how it distinguishes surrounding sounds. Tests reduced bus noise while keeping public announcements audible."
+  },
+  {
+    "doc_id": "IT-05-ko",
+    "group_id": "IT-05",
+    "language": "ko",
+    "label": "IT",
+    "split": "train",
+    "clean_text": "보안 연구팀은 파일을 열 때 악성 코드를 검사하는 도구를 공개했다. 도구는 의심스러운 동작을 기록하고 사용자에게 실행 중단을 알린다."
+  },
+  {
+    "doc_id": "IT-05-en",
+    "group_id": "IT-05",
+    "language": "en",
+    "label": "IT",
+    "split": "train",
+    "clean_text": "A security team released a tool that scans files for malicious code before opening them. It records suspicious behavior and tells the user when execution is blocked."
+  },
+  {
+    "doc_id": "IT-06-ko",
+    "group_id": "IT-06",
+    "language": "ko",
+    "label": "IT",
+    "split": "train",
+    "clean_text": "이 기록은 하루 동안 모인 여러 안내를 순서대로 정리한 문서입니다. 첫 부분은 문서를 읽는 방법을 설명합니다. 담당자는 회의실에서 받은 메모와 별도로 제출한 기록을 모았습니다. 작성 시각이 다른 기록도 원래 순서를 유지했습니다. 읽는 사람은 첫 문장만 보고 문서 전체의 주제를 정하지 말아야 합니다.\n\n중간 안내에는 참석 확인과 문서 보관 절차가 적혀 있습니다. 자료를 읽은 뒤에는 각 문단의 역할을 구분합니다. 공통 안내와 실제 사건을 설명하는 문단은 서로 역할이 다릅니다. 표제나 파일 이름에는 주제 정보가 없습니다. 마지막 문단에서 무엇이 달라졌고 왜 그 일이 중요한지 확인합니다. 아래 내용이 이 문서에서 분류할 실제 사건입니다.\n\n새 메모리 관리기는 사용하지 않는 앱의 임시 배열을 해제한다. 개발자는 같은 파일을 반복해서 읽어도 메모리 사용량이 계속 늘지 않는지 확인했다."
+  },
+  {
+    "doc_id": "IT-06-en",
+    "group_id": "IT-06",
+    "language": "en",
+    "label": "IT",
+    "split": "train",
+    "clean_text": "This record collects several notices received during one working day. The opening explains how to read the document. A coordinator gathered notes from a meeting room and records submitted separately. Notes written at different times kept their original order. Readers should not decide the subject of the whole document from its first sentence alone. The cover contains no category name, and the file name provides no subject clue.\n\nThe middle notice describes attendance checks and the procedure for storing documents. After reading, distinguish the roles of the individual paragraphs. General instructions serve a different purpose from the paragraph describing the actual event. Keep the information in its original order when reviewing what happened. The final paragraph explains what changed and why the event matters. The text below describes the actual event to classify, while these preceding paragraphs only provide shared reading instructions.\n\nA new memory manager releases temporary arrays belonging to idle apps. Developers checked that memory use stopped growing when the same file was read repeatedly."
+  },
+  {
+    "doc_id": "IT-07-ko",
+    "group_id": "IT-07",
+    "language": "ko",
+    "label": "IT",
+    "split": "validation",
+    "clean_text": "운영체제 업데이트가 블루투스 연결 오류를 수정했다. 같은 이어폰으로 음악을 재생하는 시험에서 연결이 끊기는 횟수가 줄었다."
+  },
+  {
+    "doc_id": "IT-07-en",
+    "group_id": "IT-07",
+    "language": "en",
+    "label": "IT",
+    "split": "validation",
+    "clean_text": "An operating system update fixed a Bluetooth connection fault. Repeated music playback with the same earphones produced fewer disconnections."
+  },
+  {
+    "doc_id": "IT-08-ko",
+    "group_id": "IT-08",
+    "language": "ko",
+    "label": "IT",
+    "split": "validation",
+    "clean_text": "이 기록은 하루 동안 모인 여러 안내를 순서대로 정리한 문서입니다. 첫 부분은 문서를 읽는 방법을 설명합니다. 담당자는 회의실에서 받은 메모와 별도로 제출한 기록을 모았습니다. 작성 시각이 다른 기록도 원래 순서를 유지했습니다. 읽는 사람은 첫 문장만 보고 문서 전체의 주제를 정하지 말아야 합니다.\n\n중간 안내에는 참석 확인과 문서 보관 절차가 적혀 있습니다. 자료를 읽은 뒤에는 각 문단의 역할을 구분합니다. 공통 안내와 실제 사건을 설명하는 문단은 서로 역할이 다릅니다. 표제나 파일 이름에는 주제 정보가 없습니다. 마지막 문단에서 무엇이 달라졌고 왜 그 일이 중요한지 확인합니다. 아래 내용이 이 문서에서 분류할 실제 사건입니다.\n\n브라우저 개발팀이 페이지의 글자를 더 빨리 그리는 렌더링 엔진을 시험했다. 글꼴 캐시를 재사용해 긴 문서의 화면 이동이 부드러워졌다."
+  },
+  {
+    "doc_id": "IT-08-en",
+    "group_id": "IT-08",
+    "language": "en",
+    "label": "IT",
+    "split": "validation",
+    "clean_text": "This record collects several notices received during one working day. The opening explains how to read the document. A coordinator gathered notes from a meeting room and records submitted separately. Notes written at different times kept their original order. Readers should not decide the subject of the whole document from its first sentence alone. The cover contains no category name, and the file name provides no subject clue.\n\nThe middle notice describes attendance checks and the procedure for storing documents. After reading, distinguish the roles of the individual paragraphs. General instructions serve a different purpose from the paragraph describing the actual event. Keep the information in its original order when reviewing what happened. The final paragraph explains what changed and why the event matters. The text below describes the actual event to classify, while these preceding paragraphs only provide shared reading instructions.\n\nA browser team tested a rendering engine that draws page text faster. Reusing the font cache made scrolling through long documents smoother."
+  },
+  {
+    "doc_id": "IT-09-ko",
+    "group_id": "IT-09",
+    "language": "ko",
+    "label": "IT",
+    "split": "final_test",
+    "clean_text": "지도 앱이 네트워크 없이 경로를 계산하는 기능을 추가했다. 기기에 저장한 도로 정보를 읽어 출발지부터 목적지까지의 경로를 찾는다."
+  },
+  {
+    "doc_id": "IT-09-en",
+    "group_id": "IT-09",
+    "language": "en",
+    "label": "IT",
+    "split": "final_test",
+    "clean_text": "A map app added route calculation without a network connection. It reads roads stored on the device to find a route from the starting point to the destination."
+  },
+  {
+    "doc_id": "IT-10-ko",
+    "group_id": "IT-10",
+    "language": "ko",
+    "label": "IT",
+    "split": "final_test",
+    "clean_text": "이 기록은 하루 동안 모인 여러 안내를 순서대로 정리한 문서입니다. 첫 부분은 문서를 읽는 방법을 설명합니다. 담당자는 회의실에서 받은 메모와 별도로 제출한 기록을 모았습니다. 작성 시각이 다른 기록도 원래 순서를 유지했습니다. 읽는 사람은 첫 문장만 보고 문서 전체의 주제를 정하지 말아야 합니다.\n\n중간 안내에는 참석 확인과 문서 보관 절차가 적혀 있습니다. 자료를 읽은 뒤에는 각 문단의 역할을 구분합니다. 공통 안내와 실제 사건을 설명하는 문단은 서로 역할이 다릅니다. 표제나 파일 이름에는 주제 정보가 없습니다. 마지막 문단에서 무엇이 달라졌고 왜 그 일이 중요한지 확인합니다. 아래 내용이 이 문서에서 분류할 실제 사건입니다.\n\n음성 처리 연구팀이 작은 신경망으로 잡음을 지우는 프로그램을 만들었다. 전화 통화의 입력 소리를 짧은 조각으로 나누어 처리하도록 설계했다."
+  },
+  {
+    "doc_id": "IT-10-en",
+    "group_id": "IT-10",
+    "language": "en",
+    "label": "IT",
+    "split": "final_test",
+    "clean_text": "This record collects several notices received during one working day. The opening explains how to read the document. A coordinator gathered notes from a meeting room and records submitted separately. Notes written at different times kept their original order. Readers should not decide the subject of the whole document from its first sentence alone. The cover contains no category name, and the file name provides no subject clue.\n\nThe middle notice describes attendance checks and the procedure for storing documents. After reading, distinguish the roles of the individual paragraphs. General instructions serve a different purpose from the paragraph describing the actual event. Keep the information in its original order when reviewing what happened. The final paragraph explains what changed and why the event matters. The text below describes the actual event to classify, while these preceding paragraphs only provide shared reading instructions.\n\nA speech-processing team built a small neural network that removes noise. The program processes phone-call audio in short segments."
+  },
+  {
+    "doc_id": "ECO-01-ko",
+    "group_id": "ECO-01",
+    "language": "ko",
+    "label": "경제",
+    "split": "train",
+    "clean_text": "중앙은행은 기준 금리를 유지했다. 금융시장에서는 가계 대출 이자와 기업의 자금 조달 비용이 어떻게 달라질지 살폈다."
+  },
+  {
+    "doc_id": "ECO-01-en",
+    "group_id": "ECO-01",
+    "language": "en",
+    "label": "경제",
+    "split": "train",
+    "clean_text": "The central bank kept its benchmark interest rate unchanged. Financial markets examined the effects on household loan interest and business funding costs."
+  },
+  {
+    "doc_id": "ECO-02-ko",
+    "group_id": "ECO-02",
+    "language": "ko",
+    "label": "경제",
+    "split": "train",
+    "clean_text": "이 기록은 하루 동안 모인 여러 안내를 순서대로 정리한 문서입니다. 첫 부분은 문서를 읽는 방법을 설명합니다. 담당자는 회의실에서 받은 메모와 별도로 제출한 기록을 모았습니다. 작성 시각이 다른 기록도 원래 순서를 유지했습니다. 읽는 사람은 첫 문장만 보고 문서 전체의 주제를 정하지 말아야 합니다.\n\n중간 안내에는 참석 확인과 문서 보관 절차가 적혀 있습니다. 자료를 읽은 뒤에는 각 문단의 역할을 구분합니다. 공통 안내와 실제 사건을 설명하는 문단은 서로 역할이 다릅니다. 표제나 파일 이름에는 주제 정보가 없습니다. 마지막 문단에서 무엇이 달라졌고 왜 그 일이 중요한지 확인합니다. 아래 내용이 이 문서에서 분류할 실제 사건입니다.\n\n수출 기업의 분기 매출과 영업 이익이 증가했다. 회사는 제품 판매량과 환율 변화가 실적에 영향을 주었다고 발표했다."
+  },
+  {
+    "doc_id": "ECO-02-en",
+    "group_id": "ECO-02",
+    "language": "en",
+    "label": "경제",
+    "split": "train",
+    "clean_text": "This record collects several notices received during one working day. The opening explains how to read the document. A coordinator gathered notes from a meeting room and records submitted separately. Notes written at different times kept their original order. Readers should not decide the subject of the whole document from its first sentence alone. The cover contains no category name, and the file name provides no subject clue.\n\nThe middle notice describes attendance checks and the procedure for storing documents. After reading, distinguish the roles of the individual paragraphs. General instructions serve a different purpose from the paragraph describing the actual event. Keep the information in its original order when reviewing what happened. The final paragraph explains what changed and why the event matters. The text below describes the actual event to classify, while these preceding paragraphs only provide shared reading instructions.\n\nAn exporting company reported higher quarterly revenue and operating profit. It attributed the results to sales volume and exchange-rate changes."
+  },
+  {
+    "doc_id": "ECO-03-ko",
+    "group_id": "ECO-03",
+    "language": "ko",
+    "label": "경제",
+    "split": "train",
+    "clean_text": "소비자 물가 상승률이 지난달보다 낮아졌다. 통계 담당자는 식료품 가격과 교통비가 전체 지수에 미친 영향을 설명했다."
+  },
+  {
+    "doc_id": "ECO-03-en",
+    "group_id": "ECO-03",
+    "language": "en",
+    "label": "경제",
+    "split": "train",
+    "clean_text": "Consumer price inflation slowed compared with the previous month. A statistician explained how food prices and transport costs affected the overall index."
+  },
+  {
+    "doc_id": "ECO-04-ko",
+    "group_id": "ECO-04",
+    "language": "ko",
+    "label": "경제",
+    "split": "train",
+    "clean_text": "이 기록은 하루 동안 모인 여러 안내를 순서대로 정리한 문서입니다. 첫 부분은 문서를 읽는 방법을 설명합니다. 담당자는 회의실에서 받은 메모와 별도로 제출한 기록을 모았습니다. 작성 시각이 다른 기록도 원래 순서를 유지했습니다. 읽는 사람은 첫 문장만 보고 문서 전체의 주제를 정하지 말아야 합니다.\n\n중간 안내에는 참석 확인과 문서 보관 절차가 적혀 있습니다. 자료를 읽은 뒤에는 각 문단의 역할을 구분합니다. 공통 안내와 실제 사건을 설명하는 문단은 서로 역할이 다릅니다. 표제나 파일 이름에는 주제 정보가 없습니다. 마지막 문단에서 무엇이 달라졌고 왜 그 일이 중요한지 확인합니다. 아래 내용이 이 문서에서 분류할 실제 사건입니다.\n\n주식시장에서 은행과 유통 기업의 주가가 하락했다. 투자자들은 소비 지출 감소가 다음 분기 이익에 미칠 영향을 검토했다."
+  },
+  {
+    "doc_id": "ECO-04-en",
+    "group_id": "ECO-04",
+    "language": "en",
+    "label": "경제",
+    "split": "train",
+    "clean_text": "This record collects several notices received during one working day. The opening explains how to read the document. A coordinator gathered notes from a meeting room and records submitted separately. Notes written at different times kept their original order. Readers should not decide the subject of the whole document from its first sentence alone. The cover contains no category name, and the file name provides no subject clue.\n\nThe middle notice describes attendance checks and the procedure for storing documents. After reading, distinguish the roles of the individual paragraphs. General instructions serve a different purpose from the paragraph describing the actual event. Keep the information in its original order when reviewing what happened. The final paragraph explains what changed and why the event matters. The text below describes the actual event to classify, while these preceding paragraphs only provide shared reading instructions.\n\nBank and retail shares fell in the stock market. Investors reviewed how reduced consumer spending could affect profits in the next quarter."
+  },
+  {
+    "doc_id": "ECO-05-ko",
+    "group_id": "ECO-05",
+    "language": "ko",
+    "label": "경제",
+    "split": "train",
+    "clean_text": "정부가 소규모 사업자의 대출 보증 한도를 조정했다. 지원 대상과 상환 기간을 정해 자금 조달 부담을 줄이려는 정책이다."
+  },
+  {
+    "doc_id": "ECO-05-en",
+    "group_id": "ECO-05",
+    "language": "en",
+    "label": "경제",
+    "split": "train",
+    "clean_text": "The government adjusted loan-guarantee limits for small businesses. Eligibility and repayment periods were set to reduce their financing burden."
+  },
+  {
+    "doc_id": "ECO-06-ko",
+    "group_id": "ECO-06",
+    "language": "ko",
+    "label": "경제",
+    "split": "train",
+    "clean_text": "이 기록은 하루 동안 모인 여러 안내를 순서대로 정리한 문서입니다. 첫 부분은 문서를 읽는 방법을 설명합니다. 담당자는 회의실에서 받은 메모와 별도로 제출한 기록을 모았습니다. 작성 시각이 다른 기록도 원래 순서를 유지했습니다. 읽는 사람은 첫 문장만 보고 문서 전체의 주제를 정하지 말아야 합니다.\n\n중간 안내에는 참석 확인과 문서 보관 절차가 적혀 있습니다. 자료를 읽은 뒤에는 각 문단의 역할을 구분합니다. 공통 안내와 실제 사건을 설명하는 문단은 서로 역할이 다릅니다. 표제나 파일 이름에는 주제 정보가 없습니다. 마지막 문단에서 무엇이 달라졌고 왜 그 일이 중요한지 확인합니다. 아래 내용이 이 문서에서 분류할 실제 사건입니다.\n\n운송 회사는 국제 유가 상승으로 비용이 늘었다고 밝혔다. 연료비와 운임 변화가 영업 이익에 미친 영향을 재무 보고서에 담았다."
+  },
+  {
+    "doc_id": "ECO-06-en",
+    "group_id": "ECO-06",
+    "language": "en",
+    "label": "경제",
+    "split": "train",
+    "clean_text": "This record collects several notices received during one working day. The opening explains how to read the document. A coordinator gathered notes from a meeting room and records submitted separately. Notes written at different times kept their original order. Readers should not decide the subject of the whole document from its first sentence alone. The cover contains no category name, and the file name provides no subject clue.\n\nThe middle notice describes attendance checks and the procedure for storing documents. After reading, distinguish the roles of the individual paragraphs. General instructions serve a different purpose from the paragraph describing the actual event. Keep the information in its original order when reviewing what happened. The final paragraph explains what changed and why the event matters. The text below describes the actual event to classify, while these preceding paragraphs only provide shared reading instructions.\n\nA transport company reported higher costs after international oil prices rose. Its financial report described how fuel expenses and freight rates affected operating profit."
+  },
+  {
+    "doc_id": "ECO-07-ko",
+    "group_id": "ECO-07",
+    "language": "ko",
+    "label": "경제",
+    "split": "validation",
+    "clean_text": "지역 상점의 매출이 지난 분기보다 줄었다. 상인들은 소비 지출이 감소해 임대료와 인건비 부담이 커졌다고 말했다."
+  },
+  {
+    "doc_id": "ECO-07-en",
+    "group_id": "ECO-07",
+    "language": "en",
+    "label": "경제",
+    "split": "validation",
+    "clean_text": "Local shop revenue declined from the previous quarter. Shopkeepers said lower consumer spending increased the burden of rent and labor costs."
+  },
+  {
+    "doc_id": "ECO-08-ko",
+    "group_id": "ECO-08",
+    "language": "ko",
+    "label": "경제",
+    "split": "validation",
+    "clean_text": "이 기록은 하루 동안 모인 여러 안내를 순서대로 정리한 문서입니다. 첫 부분은 문서를 읽는 방법을 설명합니다. 담당자는 회의실에서 받은 메모와 별도로 제출한 기록을 모았습니다. 작성 시각이 다른 기록도 원래 순서를 유지했습니다. 읽는 사람은 첫 문장만 보고 문서 전체의 주제를 정하지 말아야 합니다.\n\n중간 안내에는 참석 확인과 문서 보관 절차가 적혀 있습니다. 자료를 읽은 뒤에는 각 문단의 역할을 구분합니다. 공통 안내와 실제 사건을 설명하는 문단은 서로 역할이 다릅니다. 표제나 파일 이름에는 주제 정보가 없습니다. 마지막 문단에서 무엇이 달라졌고 왜 그 일이 중요한지 확인합니다. 아래 내용이 이 문서에서 분류할 실제 사건입니다.\n\n반도체 회사가 새 공장 투자에 필요한 자금을 채권으로 조달했다. 투자 설명의 중심은 반도체 작동 원리가 아니라 이자 비용과 상환 계획이다."
+  },
+  {
+    "doc_id": "ECO-08-en",
+    "group_id": "ECO-08",
+    "language": "en",
+    "label": "경제",
+    "split": "validation",
+    "clean_text": "This record collects several notices received during one working day. The opening explains how to read the document. A coordinator gathered notes from a meeting room and records submitted separately. Notes written at different times kept their original order. Readers should not decide the subject of the whole document from its first sentence alone. The cover contains no category name, and the file name provides no subject clue.\n\nThe middle notice describes attendance checks and the procedure for storing documents. After reading, distinguish the roles of the individual paragraphs. General instructions serve a different purpose from the paragraph describing the actual event. Keep the information in its original order when reviewing what happened. The final paragraph explains what changed and why the event matters. The text below describes the actual event to classify, while these preceding paragraphs only provide shared reading instructions.\n\nA semiconductor company issued bonds to finance a new factory. The report focuses on interest expenses and repayment plans rather than how chips operate."
+  },
+  {
+    "doc_id": "ECO-09-ko",
+    "group_id": "ECO-09",
+    "language": "ko",
+    "label": "경제",
+    "split": "final_test",
+    "clean_text": "원화 환율 변화로 수입 업체의 결제 비용이 증가했다. 업체는 제품 가격에 비용을 반영할지 검토하고 다음 달 자금 계획을 다시 계산했다."
+  },
+  {
+    "doc_id": "ECO-09-en",
+    "group_id": "ECO-09",
+    "language": "en",
+    "label": "경제",
+    "split": "final_test",
+    "clean_text": "Exchange-rate changes increased an importer’s payment costs. It reviewed whether to pass the costs into product prices and revised its cash plan for the next month."
+  },
+  {
+    "doc_id": "ECO-10-ko",
+    "group_id": "ECO-10",
+    "language": "ko",
+    "label": "경제",
+    "split": "final_test",
+    "clean_text": "이 기록은 하루 동안 모인 여러 안내를 순서대로 정리한 문서입니다. 첫 부분은 문서를 읽는 방법을 설명합니다. 담당자는 회의실에서 받은 메모와 별도로 제출한 기록을 모았습니다. 작성 시각이 다른 기록도 원래 순서를 유지했습니다. 읽는 사람은 첫 문장만 보고 문서 전체의 주제를 정하지 말아야 합니다.\n\n중간 안내에는 참석 확인과 문서 보관 절차가 적혀 있습니다. 자료를 읽은 뒤에는 각 문단의 역할을 구분합니다. 공통 안내와 실제 사건을 설명하는 문단은 서로 역할이 다릅니다. 표제나 파일 이름에는 주제 정보가 없습니다. 마지막 문단에서 무엇이 달라졌고 왜 그 일이 중요한지 확인합니다. 아래 내용이 이 문서에서 분류할 실제 사건입니다.\n\n프로 축구단이 분기 재무 실적을 발표했다. 경기 결과보다 입장권 수입과 광고 계약의 매출, 운영 비용의 변화를 중심으로 설명했다."
+  },
+  {
+    "doc_id": "ECO-10-en",
+    "group_id": "ECO-10",
+    "language": "en",
+    "label": "경제",
+    "split": "final_test",
+    "clean_text": "This record collects several notices received during one working day. The opening explains how to read the document. A coordinator gathered notes from a meeting room and records submitted separately. Notes written at different times kept their original order. Readers should not decide the subject of the whole document from its first sentence alone. The cover contains no category name, and the file name provides no subject clue.\n\nThe middle notice describes attendance checks and the procedure for storing documents. After reading, distinguish the roles of the individual paragraphs. General instructions serve a different purpose from the paragraph describing the actual event. Keep the information in its original order when reviewing what happened. The final paragraph explains what changed and why the event matters. The text below describes the actual event to classify, while these preceding paragraphs only provide shared reading instructions.\n\nA professional football club published quarterly financial results. The report focuses on ticket revenue, advertising sales, and operating expenses rather than match results."
+  },
+  {
+    "doc_id": "SPT-01-ko",
+    "group_id": "SPT-01",
+    "language": "ko",
+    "label": "스포츠",
+    "split": "train",
+    "clean_text": "축구팀이 후반에 두 골을 넣어 결승에 진출했다. 감독은 선수 교체와 수비 전술이 승리에 영향을 주었다고 설명했다."
+  },
+  {
+    "doc_id": "SPT-01-en",
+    "group_id": "SPT-01",
+    "language": "en",
+    "label": "스포츠",
+    "split": "train",
+    "clean_text": "A football team scored twice in the second half to reach the final. Its coach explained how substitutions and defensive tactics helped secure the win."
+  },
+  {
+    "doc_id": "SPT-02-ko",
+    "group_id": "SPT-02",
+    "language": "ko",
+    "label": "스포츠",
+    "split": "train",
+    "clean_text": "이 기록은 하루 동안 모인 여러 안내를 순서대로 정리한 문서입니다. 첫 부분은 문서를 읽는 방법을 설명합니다. 담당자는 회의실에서 받은 메모와 별도로 제출한 기록을 모았습니다. 작성 시각이 다른 기록도 원래 순서를 유지했습니다. 읽는 사람은 첫 문장만 보고 문서 전체의 주제를 정하지 말아야 합니다.\n\n중간 안내에는 참석 확인과 문서 보관 절차가 적혀 있습니다. 자료를 읽은 뒤에는 각 문단의 역할을 구분합니다. 공통 안내와 실제 사건을 설명하는 문단은 서로 역할이 다릅니다. 표제나 파일 이름에는 주제 정보가 없습니다. 마지막 문단에서 무엇이 달라졌고 왜 그 일이 중요한지 확인합니다. 아래 내용이 이 문서에서 분류할 실제 사건입니다.\n\n야구 투수가 일곱 이닝 동안 한 점만 내줬다. 팀은 안타와 도루를 연결해 득점했고 경기 막판까지 리드를 지켰다."
+  },
+  {
+    "doc_id": "SPT-02-en",
+    "group_id": "SPT-02",
+    "language": "en",
+    "label": "스포츠",
+    "split": "train",
+    "clean_text": "This record collects several notices received during one working day. The opening explains how to read the document. A coordinator gathered notes from a meeting room and records submitted separately. Notes written at different times kept their original order. Readers should not decide the subject of the whole document from its first sentence alone. The cover contains no category name, and the file name provides no subject clue.\n\nThe middle notice describes attendance checks and the procedure for storing documents. After reading, distinguish the roles of the individual paragraphs. General instructions serve a different purpose from the paragraph describing the actual event. Keep the information in its original order when reviewing what happened. The final paragraph explains what changed and why the event matters. The text below describes the actual event to classify, while these preceding paragraphs only provide shared reading instructions.\n\nA baseball pitcher allowed only one run in seven innings. The team combined hits and stolen bases to score and kept its lead until the end."
+  },
+  {
+    "doc_id": "SPT-03-ko",
+    "group_id": "SPT-03",
+    "language": "ko",
+    "label": "스포츠",
+    "split": "train",
+    "clean_text": "농구 선수가 마지막 공격에서 역전 슛을 성공시켰다. 상대 팀은 남은 시간에 득점하지 못해 경기가 끝났다."
+  },
+  {
+    "doc_id": "SPT-03-en",
+    "group_id": "SPT-03",
+    "language": "en",
+    "label": "스포츠",
+    "split": "train",
+    "clean_text": "A basketball player scored the winning basket on the final possession. The opposing team failed to score before the game ended."
+  },
+  {
+    "doc_id": "SPT-04-ko",
+    "group_id": "SPT-04",
+    "language": "ko",
+    "label": "스포츠",
+    "split": "train",
+    "clean_text": "이 기록은 하루 동안 모인 여러 안내를 순서대로 정리한 문서입니다. 첫 부분은 문서를 읽는 방법을 설명합니다. 담당자는 회의실에서 받은 메모와 별도로 제출한 기록을 모았습니다. 작성 시각이 다른 기록도 원래 순서를 유지했습니다. 읽는 사람은 첫 문장만 보고 문서 전체의 주제를 정하지 말아야 합니다.\n\n중간 안내에는 참석 확인과 문서 보관 절차가 적혀 있습니다. 자료를 읽은 뒤에는 각 문단의 역할을 구분합니다. 공통 안내와 실제 사건을 설명하는 문단은 서로 역할이 다릅니다. 표제나 파일 이름에는 주제 정보가 없습니다. 마지막 문단에서 무엇이 달라졌고 왜 그 일이 중요한지 확인합니다. 아래 내용이 이 문서에서 분류할 실제 사건입니다.\n\n수영 대회에서 선수가 자유형 기록을 경신했다. 코치는 출발 반응과 마지막 구간의 속도 유지가 좋아졌다고 평가했다."
+  },
+  {
+    "doc_id": "SPT-04-en",
+    "group_id": "SPT-04",
+    "language": "en",
+    "label": "스포츠",
+    "split": "train",
+    "clean_text": "This record collects several notices received during one working day. The opening explains how to read the document. A coordinator gathered notes from a meeting room and records submitted separately. Notes written at different times kept their original order. Readers should not decide the subject of the whole document from its first sentence alone. The cover contains no category name, and the file name provides no subject clue.\n\nThe middle notice describes attendance checks and the procedure for storing documents. After reading, distinguish the roles of the individual paragraphs. General instructions serve a different purpose from the paragraph describing the actual event. Keep the information in its original order when reviewing what happened. The final paragraph explains what changed and why the event matters. The text below describes the actual event to classify, while these preceding paragraphs only provide shared reading instructions.\n\nA swimmer broke a freestyle record at a competition. The coach credited a faster start and better speed control in the final stretch."
+  },
+  {
+    "doc_id": "SPT-05-ko",
+    "group_id": "SPT-05",
+    "language": "ko",
+    "label": "스포츠",
+    "split": "train",
+    "clean_text": "배구팀은 서브와 블로킹을 앞세워 세트를 따냈다. 세터는 상대 수비를 보고 공격 방향을 바꿨고 팀은 연승을 이어 갔다."
+  },
+  {
+    "doc_id": "SPT-05-en",
+    "group_id": "SPT-05",
+    "language": "en",
+    "label": "스포츠",
+    "split": "train",
+    "clean_text": "A volleyball team won a set through strong serves and blocks. Its setter changed attack directions after reading the opposing defense, extending the team’s winning streak."
+  },
+  {
+    "doc_id": "SPT-06-ko",
+    "group_id": "SPT-06",
+    "language": "ko",
+    "label": "스포츠",
+    "split": "train",
+    "clean_text": "이 기록은 하루 동안 모인 여러 안내를 순서대로 정리한 문서입니다. 첫 부분은 문서를 읽는 방법을 설명합니다. 담당자는 회의실에서 받은 메모와 별도로 제출한 기록을 모았습니다. 작성 시각이 다른 기록도 원래 순서를 유지했습니다. 읽는 사람은 첫 문장만 보고 문서 전체의 주제를 정하지 말아야 합니다.\n\n중간 안내에는 참석 확인과 문서 보관 절차가 적혀 있습니다. 자료를 읽은 뒤에는 각 문단의 역할을 구분합니다. 공통 안내와 실제 사건을 설명하는 문단은 서로 역할이 다릅니다. 표제나 파일 이름에는 주제 정보가 없습니다. 마지막 문단에서 무엇이 달라졌고 왜 그 일이 중요한지 확인합니다. 아래 내용이 이 문서에서 분류할 실제 사건입니다.\n\n테니스 선수가 긴 랠리 끝에 결승 진출을 확정했다. 상대의 백핸드를 공략한 전술과 첫 서브 성공률이 승부를 갈랐다."
+  },
+  {
+    "doc_id": "SPT-06-en",
+    "group_id": "SPT-06",
+    "language": "en",
+    "label": "스포츠",
+    "split": "train",
+    "clean_text": "This record collects several notices received during one working day. The opening explains how to read the document. A coordinator gathered notes from a meeting room and records submitted separately. Notes written at different times kept their original order. Readers should not decide the subject of the whole document from its first sentence alone. The cover contains no category name, and the file name provides no subject clue.\n\nThe middle notice describes attendance checks and the procedure for storing documents. After reading, distinguish the roles of the individual paragraphs. General instructions serve a different purpose from the paragraph describing the actual event. Keep the information in its original order when reviewing what happened. The final paragraph explains what changed and why the event matters. The text below describes the actual event to classify, while these preceding paragraphs only provide shared reading instructions.\n\nA tennis player secured a place in the final after a long rally. Tactics targeting the opponent’s backhand and a strong first-serve rate decided the match."
+  },
+  {
+    "doc_id": "SPT-07-ko",
+    "group_id": "SPT-07",
+    "language": "ko",
+    "label": "스포츠",
+    "split": "validation",
+    "clean_text": "육상 선수가 마지막 직선 구간에서 앞선 주자를 추월했다. 결승선을 통과한 뒤 심판이 기록을 확인하고 우승자를 발표했다."
+  },
+  {
+    "doc_id": "SPT-07-en",
+    "group_id": "SPT-07",
+    "language": "en",
+    "label": "스포츠",
+    "split": "validation",
+    "clean_text": "A runner overtook the leader on the final straight. After the finish, officials checked the times and announced the winner."
+  },
+  {
+    "doc_id": "SPT-08-ko",
+    "group_id": "SPT-08",
+    "language": "ko",
+    "label": "스포츠",
+    "split": "validation",
+    "clean_text": "이 기록은 하루 동안 모인 여러 안내를 순서대로 정리한 문서입니다. 첫 부분은 문서를 읽는 방법을 설명합니다. 담당자는 회의실에서 받은 메모와 별도로 제출한 기록을 모았습니다. 작성 시각이 다른 기록도 원래 순서를 유지했습니다. 읽는 사람은 첫 문장만 보고 문서 전체의 주제를 정하지 말아야 합니다.\n\n중간 안내에는 참석 확인과 문서 보관 절차가 적혀 있습니다. 자료를 읽은 뒤에는 각 문단의 역할을 구분합니다. 공통 안내와 실제 사건을 설명하는 문단은 서로 역할이 다릅니다. 표제나 파일 이름에는 주제 정보가 없습니다. 마지막 문단에서 무엇이 달라졌고 왜 그 일이 중요한지 확인합니다. 아래 내용이 이 문서에서 분류할 실제 사건입니다.\n\n하키팀은 상대의 빠른 공격에 대비해 수비 간격을 좁혔다. 골키퍼의 연속 선방으로 동점을 지킨 뒤 연장전에서 승리했다."
+  },
+  {
+    "doc_id": "SPT-08-en",
+    "group_id": "SPT-08",
+    "language": "en",
+    "label": "스포츠",
+    "split": "validation",
+    "clean_text": "This record collects several notices received during one working day. The opening explains how to read the document. A coordinator gathered notes from a meeting room and records submitted separately. Notes written at different times kept their original order. Readers should not decide the subject of the whole document from its first sentence alone. The cover contains no category name, and the file name provides no subject clue.\n\nThe middle notice describes attendance checks and the procedure for storing documents. After reading, distinguish the roles of the individual paragraphs. General instructions serve a different purpose from the paragraph describing the actual event. Keep the information in its original order when reviewing what happened. The final paragraph explains what changed and why the event matters. The text below describes the actual event to classify, while these preceding paragraphs only provide shared reading instructions.\n\nA hockey team narrowed its defensive spacing against fast attacks. Repeated saves by its goalkeeper kept the score level before the team won in overtime."
+  },
+  {
+    "doc_id": "SPT-09-ko",
+    "group_id": "SPT-09",
+    "language": "ko",
+    "label": "스포츠",
+    "split": "final_test",
+    "clean_text": "배드민턴 복식 조가 준결승에서 상대의 짧은 서브를 공략했다. 두 선수는 앞뒤 위치를 바꾸며 공격을 이어 가 결승에 올랐다."
+  },
+  {
+    "doc_id": "SPT-09-en",
+    "group_id": "SPT-09",
+    "language": "en",
+    "label": "스포츠",
+    "split": "final_test",
+    "clean_text": "A badminton doubles pair attacked short serves in the semifinal. The players switched front and back positions to sustain attacks and advance to the final."
+  },
+  {
+    "doc_id": "SPT-10-ko",
+    "group_id": "SPT-10",
+    "language": "ko",
+    "label": "스포츠",
+    "split": "final_test",
+    "clean_text": "이 기록은 하루 동안 모인 여러 안내를 순서대로 정리한 문서입니다. 첫 부분은 문서를 읽는 방법을 설명합니다. 담당자는 회의실에서 받은 메모와 별도로 제출한 기록을 모았습니다. 작성 시각이 다른 기록도 원래 순서를 유지했습니다. 읽는 사람은 첫 문장만 보고 문서 전체의 주제를 정하지 말아야 합니다.\n\n중간 안내에는 참석 확인과 문서 보관 절차가 적혀 있습니다. 자료를 읽은 뒤에는 각 문단의 역할을 구분합니다. 공통 안내와 실제 사건을 설명하는 문단은 서로 역할이 다릅니다. 표제나 파일 이름에는 주제 정보가 없습니다. 마지막 문단에서 무엇이 달라졌고 왜 그 일이 중요한지 확인합니다. 아래 내용이 이 문서에서 분류할 실제 사건입니다.\n\n스포츠 분석 앱을 쓰는 양궁팀이 전국 대회에서 우승했다. 기사는 앱의 구조보다 선수의 자세 조정과 마지막 화살의 점수를 중심으로 다룬다."
+  },
+  {
+    "doc_id": "SPT-10-en",
+    "group_id": "SPT-10",
+    "language": "en",
+    "label": "스포츠",
+    "split": "final_test",
+    "clean_text": "This record collects several notices received during one working day. The opening explains how to read the document. A coordinator gathered notes from a meeting room and records submitted separately. Notes written at different times kept their original order. Readers should not decide the subject of the whole document from its first sentence alone. The cover contains no category name, and the file name provides no subject clue.\n\nThe middle notice describes attendance checks and the procedure for storing documents. After reading, distinguish the roles of the individual paragraphs. General instructions serve a different purpose from the paragraph describing the actual event. Keep the information in its original order when reviewing what happened. The final paragraph explains what changed and why the event matters. The text below describes the actual event to classify, while these preceding paragraphs only provide shared reading instructions.\n\nAn archery team using a sports-analysis app won a national competition. The article focuses on posture adjustments and the final arrow’s score rather than the structure of the app."
+  },
+  {
+    "doc_id": "OUT-01-ko",
+    "group_id": "OUT-01",
+    "language": "ko",
+    "label": "범위 밖",
+    "split": "validation",
+    "clean_text": "진료소는 가벼운 감기 증상이 있는 사람에게 휴식과 수분 섭취를 안내했다. 이 글은 치료 안내문이며 금융 상품이나 경기 결과를 다루지 않는다."
+  },
+  {
+    "doc_id": "OUT-01-en",
+    "group_id": "OUT-01",
+    "language": "en",
+    "label": "범위 밖",
+    "split": "validation",
+    "clean_text": "A clinic advised people with mild cold symptoms to rest and drink fluids. This is a health notice rather than a report about financial products or match results."
+  },
+  {
+    "doc_id": "OUT-02-ko",
+    "group_id": "OUT-02",
+    "language": "ko",
+    "label": "범위 밖",
+    "split": "validation",
+    "clean_text": "요리사는 채소를 씻고 얇게 썰어 냄비에 넣었다. 물을 붓고 끓인 뒤 소금으로 맛을 맞추는 조리 순서를 설명했다."
+  },
+  {
+    "doc_id": "OUT-02-en",
+    "group_id": "OUT-02",
+    "language": "en",
+    "label": "범위 밖",
+    "split": "validation",
+    "clean_text": "A cook washed vegetables, sliced them thinly, and put them in a pot. The recipe explains adding water, boiling, and seasoning with salt."
+  },
+  {
+    "doc_id": "OUT-03-ko",
+    "group_id": "OUT-03",
+    "language": "ko",
+    "label": "범위 밖",
+    "split": "validation",
+    "clean_text": "이 기록은 하루 동안 모인 여러 안내를 순서대로 정리한 문서입니다. 첫 부분은 문서를 읽는 방법을 설명합니다. 담당자는 회의실에서 받은 메모와 별도로 제출한 기록을 모았습니다. 작성 시각이 다른 기록도 원래 순서를 유지했습니다. 읽는 사람은 첫 문장만 보고 문서 전체의 주제를 정하지 말아야 합니다.\n\n중간 안내에는 참석 확인과 문서 보관 절차가 적혀 있습니다. 자료를 읽은 뒤에는 각 문단의 역할을 구분합니다. 공통 안내와 실제 사건을 설명하는 문단은 서로 역할이 다릅니다. 표제나 파일 이름에는 주제 정보가 없습니다. 마지막 문단에서 무엇이 달라졌고 왜 그 일이 중요한지 확인합니다. 아래 내용이 이 문서에서 분류할 실제 사건입니다.\n\n박물관은 옛 도자기의 무늬와 제작 과정을 소개했다. 전시 안내는 유물의 문화적 의미와 관람 동선을 설명한다."
+  },
+  {
+    "doc_id": "OUT-03-en",
+    "group_id": "OUT-03",
+    "language": "en",
+    "label": "범위 밖",
+    "split": "validation",
+    "clean_text": "This record collects several notices received during one working day. The opening explains how to read the document. A coordinator gathered notes from a meeting room and records submitted separately. Notes written at different times kept their original order. Readers should not decide the subject of the whole document from its first sentence alone. The cover contains no category name, and the file name provides no subject clue.\n\nThe middle notice describes attendance checks and the procedure for storing documents. After reading, distinguish the roles of the individual paragraphs. General instructions serve a different purpose from the paragraph describing the actual event. Keep the information in its original order when reviewing what happened. The final paragraph explains what changed and why the event matters. The text below describes the actual event to classify, while these preceding paragraphs only provide shared reading instructions.\n\nA museum introduced patterns and production methods of old pottery. Its exhibition guide explains the artifacts’ cultural meaning and the route through the galleries."
+  },
+  {
+    "doc_id": "OUT-04-ko",
+    "group_id": "OUT-04",
+    "language": "ko",
+    "label": "범위 밖",
+    "split": "final_test",
+    "clean_text": "공원 관리소는 봄에 피는 꽃의 색과 모양을 소개했다. 안내문에는 산책길에서 식물을 관찰하는 방법이 적혀 있다."
+  },
+  {
+    "doc_id": "OUT-04-en",
+    "group_id": "OUT-04",
+    "language": "en",
+    "label": "범위 밖",
+    "split": "final_test",
+    "clean_text": "A park office introduced the colors and shapes of spring flowers. The notice describes how to observe plants along a walking trail."
+  },
+  {
+    "doc_id": "OUT-05-ko",
+    "group_id": "OUT-05",
+    "language": "ko",
+    "label": "범위 밖",
+    "split": "final_test",
+    "clean_text": "독서 모임은 소설 속 인물이 가족과 화해하는 장면을 읽었다. 참가자들은 문체와 인물의 감정 변화를 이야기했다."
+  },
+  {
+    "doc_id": "OUT-05-en",
+    "group_id": "OUT-05",
+    "language": "en",
+    "label": "범위 밖",
+    "split": "final_test",
+    "clean_text": "A reading group discussed a scene in which a fictional character reconciles with family. Participants talked about the writing style and the character’s changing emotions."
+  },
+  {
+    "doc_id": "OUT-06-ko",
+    "group_id": "OUT-06",
+    "language": "ko",
+    "label": "범위 밖",
+    "split": "final_test",
+    "clean_text": "이 기록은 하루 동안 모인 여러 안내를 순서대로 정리한 문서입니다. 첫 부분은 문서를 읽는 방법을 설명합니다. 담당자는 회의실에서 받은 메모와 별도로 제출한 기록을 모았습니다. 작성 시각이 다른 기록도 원래 순서를 유지했습니다. 읽는 사람은 첫 문장만 보고 문서 전체의 주제를 정하지 말아야 합니다.\n\n중간 안내에는 참석 확인과 문서 보관 절차가 적혀 있습니다. 자료를 읽은 뒤에는 각 문단의 역할을 구분합니다. 공통 안내와 실제 사건을 설명하는 문단은 서로 역할이 다릅니다. 표제나 파일 이름에는 주제 정보가 없습니다. 마지막 문단에서 무엇이 달라졌고 왜 그 일이 중요한지 확인합니다. 아래 내용이 이 문서에서 분류할 실제 사건입니다.\n\n수공예 강사는 실을 바늘에 꿰고 천을 잇는 순서를 보여 주었다. 설명의 중심은 바느질 모양과 손의 움직임이다."
+  },
+  {
+    "doc_id": "OUT-06-en",
+    "group_id": "OUT-06",
+    "language": "en",
+    "label": "범위 밖",
+    "split": "final_test",
+    "clean_text": "This record collects several notices received during one working day. The opening explains how to read the document. A coordinator gathered notes from a meeting room and records submitted separately. Notes written at different times kept their original order. Readers should not decide the subject of the whole document from its first sentence alone. The cover contains no category name, and the file name provides no subject clue.\n\nThe middle notice describes attendance checks and the procedure for storing documents. After reading, distinguish the roles of the individual paragraphs. General instructions serve a different purpose from the paragraph describing the actual event. Keep the information in its original order when reviewing what happened. The final paragraph explains what changed and why the event matters. The text below describes the actual event to classify, while these preceding paragraphs only provide shared reading instructions.\n\nA craft instructor demonstrated threading a needle and joining pieces of fabric. The explanation focuses on stitch patterns and hand movements."
+  }
+]
