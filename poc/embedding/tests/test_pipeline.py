@@ -69,6 +69,14 @@ def test_teacher_prompt_versions_cannot_be_mixed():
         compile_rows([first, second], allow_partial=True)
 
 
+def test_search_negative_avoids_partial_answer_words():
+    first, second = sample_row(0), sample_row(10)
+    first["documents"][1]["text"] += " 푸른숲 일정을 다시 확인했다."
+    rows = compile_rows([first, second], allow_partial=True)
+    selected = next(item for item in rows["triplets"] if item["task"] == "search" and item["anchor_id"] == "train-0000-q0")
+    assert selected["negative_id"] == "train-0000-d2"
+
+
 def test_pair_f1_counts_false_positive_and_false_negative():
     pairs = [
         {"left_id": "a", "right_id": "b", "related": True},

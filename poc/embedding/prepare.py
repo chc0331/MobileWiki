@@ -113,12 +113,20 @@ def compile_rows(raw: list[dict], allow_partial: bool = False) -> dict[str, list
                 continue
             negative_event = peers[(peers.index(event_id) + 1) % len(peers)]
             if split == "train":
+                fact_tokens = [token for token in row["fact_value"].split() if len(token) >= 2]
+                search_negative_index = min(
+                    range(1, DOCUMENTS_PER_EVENT),
+                    key=lambda index: (
+                        sum(token in event_docs[event_id][index]["text"] for token in fact_tokens),
+                        index,
+                    ),
+                )
                 triplets.append(
                     {
                         "task": "search",
                         "anchor_id": f"{event_id}-q0",
                         "positive_id": f"{event_id}-d0",
-                        "negative_id": f"{event_id}-d1",
+                        "negative_id": f"{event_id}-d{search_negative_index}",
                     }
                 )
                 for index in range(DOCUMENTS_PER_EVENT):
@@ -217,6 +225,7 @@ def prepare(args: argparse.Namespace) -> None:
             for name in ("common.py", "generate.py", "prepare.py")
         },
         "split_policy": "families, events, and source cards stay in one split",
+        "search_negative_policy": "same-event non-answer document with least fact-token overlap",
         "counts": counts,
         "repair_counts": dict(Counter(repair for row in raw for repair in row.get("repairs", []))),
         "files": {path.name: sha256(path) for path in output.glob("*.jsonl")},
