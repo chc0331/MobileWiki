@@ -3,6 +3,7 @@ import json
 import pytest
 
 from common import event_card
+from curate import curate_row
 from evaluate import pair_f1
 from generate import parse_response
 from prepare import compile_rows
@@ -58,6 +59,18 @@ def test_teacher_response_rejects_duplicate_document_text():
     response = json.dumps({key: row[key] for key in ("documents", "query", "evidence")}, ensure_ascii=False)
     with pytest.raises(ValueError, match="Duplicate document text"):
         parse_response(response, event_card("train", 0).as_dict())
+
+
+def test_curation_removes_partial_answer_clues_from_distractors_and_query():
+    row = sample_row(5)
+    row["documents"][1]["text"] += " 행사 장소는 강당이야."
+    row["documents"][2]["title"] = "강당 준비"
+    row["query"] = "강당에서 열리는 학교 행사가 언제지?"
+    curated = curate_row(row)
+    assert all("강당" not in doc["title"] + doc["text"] for doc in curated["documents"][1:])
+    assert "강당" not in curated["query"]
+    assert row["documents"][1]["text"].endswith("강당이야.")
+    assert "d1: removed answer clue from text" in curated["curation_repairs"]
 
 
 def test_search_uses_same_event_distractor_and_clustering_uses_other_event():

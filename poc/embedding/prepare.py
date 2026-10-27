@@ -36,9 +36,12 @@ def compile_rows(raw: list[dict], allow_partial: bool = False) -> dict[str, list
         raise ValueError(f"Event set incomplete: {len(missing)} missing, {len(extra)} extra")
     if set(by_event) - expected:
         raise ValueError("Unknown event IDs in teacher output")
-    snapshots = {(row["teacher_id"], row["teacher_revision"], row["prompt_version"]) for row in raw}
+    snapshots = {
+        (row["teacher_id"], row["teacher_revision"], row["prompt_version"], row.get("curation_version"))
+        for row in raw
+    }
     if len(snapshots) != 1:
-        raise ValueError("A dataset must use one teacher snapshot and prompt version")
+        raise ValueError("A dataset must use one teacher snapshot, prompt version, and curation version")
 
     documents: list[dict] = []
     queries: list[dict] = []
@@ -72,6 +75,8 @@ def compile_rows(raw: list[dict], allow_partial: bool = False) -> dict[str, list
         use_paraphrase = (int(card.event_id.split("-")[-1]) // len(TOPICS)) % 2 == 0
         question = PARAPHRASE_QUERIES[card.category] if use_paraphrase else row["query"].strip()
         query_source = "paraphrase_template" if use_paraphrase else "teacher"
+        if not use_paraphrase and "query: replaced answer clue with paraphrase" in row.get("curation_repairs", []):
+            query_source = "curated_paraphrase"
         if not use_paraphrase and (ord(card.fact_label[-1]) - 0xAC00) % 28 == 0:
             corrected = question.replace(f"{card.fact_label}은", f"{card.fact_label}는")
             if corrected != question:
@@ -214,6 +219,16 @@ def prepare(args: argparse.Namespace) -> None:
     }
     counts["triplets"] = len(rows["triplets"])
     counts["triplets_by_task"] = dict(Counter(item["task"] for item in rows["triplets"]))
+    curation_path = raw_path.parent / "curation.json"
+    curation = None
+    if curation_path.exists():
+        candidate = json.loads(curation_path.read_text(encoding="utf-8"))
+        if candidate["curated_sha256"] == sha256(raw_path):
+            curation = candidate
+        elif not args.allow_partial:
+            raise ValueError("Curation manifest differs from prepared source")
+    if not args.allow_partial and curation is None:
+        raise ValueError("Full dataset requires a matching curation manifest")
     manifest = {
         "created_at": datetime.now(timezone.utc).isoformat(),
         "status": "provisional_pending_human_review",
@@ -223,15 +238,17 @@ def prepare(args: argparse.Namespace) -> None:
         "prompt_version": raw[0]["prompt_version"],
         "code_files": {
             name: sha256(Path(__file__).with_name(name))
-            for name in ("common.py", "generate.py", "prepare.py")
+            for name in ("common.py", "generate.py", "curate.py", "prepare.py")
         },
         "split_policy": "families, events, and source cards stay in one split",
         "search_negative_policy": "same-event non-answer document with least fact-token overlap",
         "counts": counts,
         "repair_counts": dict(Counter(repair for row in raw for repair in row.get("repairs", []))),
+        "curation_repair_counts": dict(Counter(repair for row in raw for repair in row.get("curation_repairs", []))),
         "files": {path.name: sha256(path) for path in output.glob("*.jsonl")},
         "review_file_sha256": sha256(output / "review.csv"),
-        "raw_sha256": sha256(raw_path),
+        "prepared_source_sha256": sha256(raw_path),
+        "curation": curation,
     }
     (output / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(counts, ensure_ascii=False, indent=2))
@@ -239,7 +256,7 @@ def prepare(args: argparse.Namespace) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input", default="artifacts/raw_events.jsonl")
+    parser.add_argument("--input", default="artifacts/curated_events.jsonl")
     parser.add_argument("--output", default="artifacts/dataset")
     parser.add_argument("--allow-partial", action="store_true")
     prepare(parser.parse_args())

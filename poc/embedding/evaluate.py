@@ -26,7 +26,11 @@ from common import (
 )
 
 THRESHOLDS = tuple(round(value * 0.05, 2) for value in range(1, 17))
-BORING_LABELS = {"메모", "기록", "확인", "예정", "일정", "사항", "관련", "내용"}
+BORING_LABELS = {
+    "메모", "기록", "확인", "예정", "일정", "사항", "관련", "내용", "이름", "날짜", "시간",
+    "필요", "모두", "사실", "경우", "정보", "완료", "추가", "정리", "가족", "물건", "동료",
+    "구성원", "연락", "날씨", "준비",
+}
 
 
 def pair_f1(pairs: list[dict], groups: dict[str, int]) -> dict:
@@ -149,9 +153,13 @@ def extract_labels(documents: list[dict], groups: dict[str, int]) -> list[dict]:
     all_tokens: dict[str, set[str]] = {}
     doc_frequency: Counter[str] = Counter()
     for document in documents:
+        person, separator, title = document["title"].partition(" · ")
+        content = (title if separator else document["title"]) + " " + document["text"]
+        if separator:
+            content = content.replace(person, "").replace(person[1:], "")
         tokens = {
             token.form
-            for token in kiwi.tokenize(document["title"] + " " + document["text"])
+            for token in kiwi.tokenize(content)
             if token.tag in ("NNG", "NNP") and len(token.form) >= 2 and token.form not in BORING_LABELS
         }
         all_tokens[document["doc_id"]] = tokens
@@ -166,7 +174,8 @@ def extract_labels(documents: list[dict], groups: dict[str, int]) -> list[dict]:
         candidates = [token for token, count in counts.items() if count >= minimum]
         candidates.sort(
             key=lambda token: (
-                -counts[token] * math.log((len(documents) + 1) / (doc_frequency[token] + 1)),
+                -counts[token],
+                -math.log((len(documents) + 1) / (doc_frequency[token] + 1)),
                 token,
             )
         )

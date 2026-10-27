@@ -16,17 +16,20 @@ def publish(args: argparse.Namespace) -> None:
 
     dataset = Path(args.dataset)
     adapter = Path(args.adapter)
-    raw = Path(args.raw)
+    curated = Path(args.curated)
+    teacher_raw = Path(args.teacher_raw)
     base_eval = Path(args.base_eval)
     tuned_eval = Path(args.tuned_eval)
     validate_dataset(dataset)
     manifest = json.loads((dataset / "manifest.json").read_text(encoding="utf-8"))
-    if sha256(raw) != manifest["raw_sha256"]:
-        raise ValueError("Raw teacher output does not match the dataset manifest")
+    if sha256(curated) != manifest["prepared_source_sha256"]:
+        raise ValueError("Curated source does not match the dataset manifest")
+    if not manifest["curation"] or sha256(teacher_raw) != manifest["curation"]["teacher_raw_sha256"]:
+        raise ValueError("Teacher output does not match the curation manifest")
     if manifest["status"] != "human_reviewed":
         raise ValueError("Human review must be completed before Hub upload")
-    if not all(path.exists() for path in (adapter / "modules.json", raw, base_eval, tuned_eval)):
-        raise FileNotFoundError("Adapter, raw events, or evaluation reports are missing")
+    if not all(path.exists() for path in (adapter / "modules.json", curated, teacher_raw, base_eval, tuned_eval)):
+        raise FileNotFoundError("Adapter, source events, or evaluation reports are missing")
     training = json.loads((adapter.parent / "training.json").read_text(encoding="utf-8"))
     base_metrics = json.loads(base_eval.read_text(encoding="utf-8"))
     tuned_metrics = json.loads(tuned_eval.read_text(encoding="utf-8"))
@@ -50,7 +53,8 @@ def publish(args: argparse.Namespace) -> None:
     if model_stage.exists():
         shutil.rmtree(model_stage)
     shutil.copytree(dataset, dataset_stage)
-    shutil.copy2(raw, dataset_stage / "raw_events.jsonl")
+    shutil.copy2(curated, dataset_stage / "curated_events.jsonl")
+    shutil.copy2(teacher_raw, dataset_stage / "teacher_raw_events.jsonl")
     (dataset_stage / "README.md").write_text(
         f"""---
 language: ko
@@ -66,7 +70,10 @@ pretty_name: SLM Wiki synthetic Korean text notes
 학습 800건, 개발 300건, 고정 평가 1,000건을 가족·사건 단위로 분리했다.
 근거 문서 ID, 교사 모델·프롬프트 버전, 생성 코드와 데이터 파일의 해시는 `manifest.json`에 남겼다.
 고정 평가 질문 140개와 문서 쌍 100개의 정답은 원문 대조 검수했다.
-나머지 모든 문장을 사람이 검토한 것은 아니며 자동 수정 내역은 `raw_events.jsonl`에 남겼다.
+생성 단계의 1차 보정본은 `teacher_raw_events.jsonl`, 답 단서 제거본은 `curated_events.jsonl`이다.
+자동 수정 내역은 두 파일의 `repairs`와 `curation_repairs`에 남겼다.
+교사 모델의 보정 전 응답 전문은 저장하지 않았다.
+나머지 모든 문장을 사람이 검토한 것은 아니다.
 10가지 주제와 일부 정답 표현은 분할 사이에 반복된다. 새로운 주제의 성능은 이 자료로 알 수 없다.
 실제 개인정보나 모든 한국어 메모에 성능을 일반화하지 않는다.
 """,
@@ -81,8 +88,10 @@ pretty_name: SLM Wiki synthetic Korean text notes
     dataset_revision = api.repo_info(dataset_repo, repo_type="dataset").sha
     downloaded_dataset = Path(snapshot_download(dataset_repo, repo_type="dataset", revision=dataset_revision))
     validate_dataset(downloaded_dataset)
-    if sha256(downloaded_dataset / "raw_events.jsonl") != manifest["raw_sha256"]:
-        raise ValueError("Hub raw teacher output hash mismatch")
+    if sha256(downloaded_dataset / "curated_events.jsonl") != manifest["prepared_source_sha256"]:
+        raise ValueError("Hub curated source hash mismatch")
+    if sha256(downloaded_dataset / "teacher_raw_events.jsonl") != manifest["curation"]["teacher_raw_sha256"]:
+        raise ValueError("Hub teacher output hash mismatch")
 
     shutil.copytree(adapter, model_stage)
     shutil.copy2(adapter.parent / "training.json", model_stage / "training.json")
@@ -175,7 +184,8 @@ Android 변환·속도·메모리 기준은 아직 시험하지 않았다.
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dataset", default="artifacts/dataset")
-    parser.add_argument("--raw", default="artifacts/raw_events.jsonl")
+    parser.add_argument("--curated", default="artifacts/curated_events.jsonl")
+    parser.add_argument("--teacher-raw", default="artifacts/raw_events.jsonl")
     parser.add_argument("--adapter", default="artifacts/trained/adapter")
     parser.add_argument("--base-eval", default="artifacts/evaluation/base.json")
     parser.add_argument("--tuned-eval", default="artifacts/evaluation/tuned.json")

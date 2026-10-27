@@ -11,6 +11,7 @@ from pathlib import Path
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 from common import DOCUMENTS_PER_EVENT, SPLIT_EVENTS, event_card, read_jsonl, sha256
+from curate import answer_cues
 
 
 def validate_dataset(folder: Path, partial: bool = False) -> dict:
@@ -71,6 +72,12 @@ def validate_dataset(folder: Path, partial: bool = False) -> dict:
             raise ValueError(f"Relevant document differs from evidence: {query['query_id']}")
         if any(docs[doc_id]["split"] != query["split"] for doc_id in query["relevant_doc_ids"]):
             raise ValueError(f"Query reference crosses splits: {query['query_id']}")
+        cues = answer_cues(card.fact_value)
+        if any(cue in query["text"] for cue in cues):
+            raise ValueError(f"Answer clue in question: {query['query_id']}")
+        distractors = [doc for doc in documents if doc["event_id"] == query["event_id"] and doc["doc_id"] != query["evidence_doc_id"]]
+        if any(cue in doc["title"] + doc["text"] for doc in distractors for cue in cues):
+            raise ValueError(f"Answer clue in distractor: {query['query_id']}")
     for pair in pairs:
         left, right = docs[pair["left_id"]], docs[pair["right_id"]]
         if left["split"] != pair["split"] or right["split"] != pair["split"]:
