@@ -4,9 +4,10 @@ import pytest
 
 from common import event_card
 from curate import curate_row
-from evaluate import pair_f1
+from evaluate import all_event_pair_f1, pair_f1
 from generate import parse_response
 from prepare import compile_rows
+from repair_duplicates import duplicate_events
 
 
 def sample_row(index):
@@ -61,6 +62,13 @@ def test_teacher_response_rejects_duplicate_document_text():
         parse_response(response, event_card("train", 0).as_dict())
 
 
+def test_duplicate_repair_selects_later_event_once():
+    first, second = sample_row(0), sample_row(10)
+    second["documents"][0]["text"] = first["documents"][0]["text"]
+    second["documents"][1]["text"] = first["documents"][1]["text"]
+    assert duplicate_events([first, second]) == [second["event_id"]]
+
+
 def test_curation_removes_partial_answer_clues_from_distractors_and_query():
     row = sample_row(5)
     row["documents"][1]["text"] += " 행사 장소는 강당이야."
@@ -109,3 +117,15 @@ def test_pair_f1_counts_false_positive_and_false_negative():
     assert result["tp"] == 1
     assert result["fp"] == 1
     assert result["f1"] == pytest.approx(2 / 3)
+
+
+def test_all_event_pairs_exposes_overmerged_groups():
+    docs = [
+        {"doc_id": "a0", "event_id": "a"}, {"doc_id": "a1", "event_id": "a"},
+        {"doc_id": "b0", "event_id": "b"}, {"doc_id": "b1", "event_id": "b"},
+    ]
+    result = all_event_pair_f1(docs, {"a0": 0, "a1": 0, "b0": 0, "b1": 0})
+    assert result["tp"] == 2
+    assert result["fp"] == 4
+    assert result["fn"] == 0
+    assert result["f1"] == pytest.approx(0.5)

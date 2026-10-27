@@ -123,7 +123,9 @@ Android 변환·속도·메모리 기준은 아직 시험하지 않았다.
 
 평가 상태: `{tuned_metrics['status']}`.
 검색 Recall@5: {tuned_metrics['test_dense_search']['recall_at_5']:.3f}.
-묶음 문서 쌍 F1: {tuned_metrics['test_pair']['f1']:.3f}.
+검수 표본 문서 쌍 100개 F1: {tuned_metrics['test_pair']['f1']:.3f}.
+전체 합성 사건의 모든 문서 쌍 F1: {tuned_metrics['test_all_event_pairs']['f1']:.3f}.
+전체 쌍 점수는 사건 카드의 자동 정답에 따른 진단이며 모든 쌍을 사람이 확인하지 않았다.
 묶음 태그와 근거는 `tag_labels.jsonl`에 기록했다. 태그 적합성은
 `tag_review.csv`에서 별도로 확인해야 한다.
 """,
@@ -163,7 +165,7 @@ Android 변환·속도·메모리 기준은 아직 시험하지 않았다.
         )
     )
     hub_metrics = json.loads(hub_evaluation_path.read_text(encoding="utf-8"))
-    for key in ("test_dense_search", "test_pair"):
+    for key in ("test_dense_search", "test_pair", "test_all_event_pairs"):
         metric = "recall_at_5" if key == "test_dense_search" else "f1"
         if abs(hub_metrics[key][metric] - tuned_metrics[key][metric]) > 1e-6:
             raise ValueError(f"Hub reload changed {key}.{metric}")

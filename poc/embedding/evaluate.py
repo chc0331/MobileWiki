@@ -51,6 +51,22 @@ def pair_f1(pairs: list[dict], groups: dict[str, int]) -> dict:
     return {"tp": tp, "fp": fp, "fn": fn, "tn": tn, "precision": precision, "recall": recall, "f1": f1}
 
 
+def all_event_pair_f1(documents: list[dict], groups: dict[str, int]) -> dict:
+    """Diagnose merges and splits against every synthetic event, not only sampled pairs."""
+    event_counts = Counter(doc["event_id"] for doc in documents)
+    group_counts = Counter(groups[doc["doc_id"]] for doc in documents)
+    joint_counts = Counter((groups[doc["doc_id"]], doc["event_id"]) for doc in documents)
+    choose_two = lambda count: count * (count - 1) // 2
+    true_pairs = sum(choose_two(count) for count in event_counts.values())
+    predicted_pairs = sum(choose_two(count) for count in group_counts.values())
+    tp = sum(choose_two(count) for count in joint_counts.values())
+    fp, fn = predicted_pairs - tp, true_pairs - tp
+    precision = tp / predicted_pairs if predicted_pairs else 0.0
+    recall = tp / true_pairs if true_pairs else 0.0
+    f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
+    return {"tp": tp, "fp": fp, "fn": fn, "precision": precision, "recall": recall, "f1": f1}
+
+
 def groups_for(documents: list[dict], vectors: np.ndarray, threshold: float) -> dict[str, int]:
     if len(documents) < 2:
         return {doc["doc_id"]: index for index, doc in enumerate(documents)}
@@ -143,6 +159,23 @@ def lexical_search(documents: list[dict], queries: list[dict]) -> dict:
         scores = (matrix @ query_vector.T).toarray().ravel()
         order = np.argsort(-scores)
         ranked.append([documents[index]["doc_id"] for index in order])
+    return retrieval_score(queries, ranked)
+
+
+def role_shortcut_baseline(documents: list[dict], queries: list[dict]) -> dict:
+    """Expose the synthetic set's person-and-first-note shortcut."""
+    people = {doc["title"].split(" · ")[0] for doc in documents}
+    ranked = []
+    for query in queries:
+        matched = [person for person in people if person in query["text"]]
+        if len(matched) != 1:
+            raise ValueError(f"Expected one synthetic person in {query['query_id']}")
+        person = matched[0]
+        first_notes = sorted(
+            doc["doc_id"] for doc in documents
+            if doc["title"].startswith(person + " · ") and doc["doc_id"].endswith("-d0")
+        )
+        ranked.append(first_notes + sorted(doc["doc_id"] for doc in documents if doc["doc_id"] not in first_notes))
     return retrieval_score(queries, ranked)
 
 
@@ -281,8 +314,10 @@ def evaluate(args: argparse.Namespace) -> None:
         "dev_selected_threshold": selected["threshold"],
         "dev_pair_f1": selected["f1"],
         "test_pair": pair_f1(test_pairs, groups),
+        "test_all_event_pairs": all_event_pair_f1(test_docs, groups),
         "test_dense_search": dense_search(model, test_docs, test_queries, args.batch_size),
         "test_lexical_search": lexical_search(test_docs, test_queries),
+        "test_role_shortcut": role_shortcut_baseline(test_docs, test_queries),
         "test_groups": len(labels),
         "test_groups_unnamed": sum(label["label"] == "이름 미정" for label in labels),
         "tag_review_sample_count": min(30, len(labels)),

@@ -238,7 +238,7 @@ def prepare(args: argparse.Namespace) -> None:
         "prompt_version": raw[0]["prompt_version"],
         "code_files": {
             name: sha256(Path(__file__).with_name(name))
-            for name in ("common.py", "generate.py", "curate.py", "prepare.py")
+            for name in ("common.py", "generate.py", "repair_duplicates.py", "curate.py", "prepare.py")
         },
         "split_policy": "families, events, and source cards stay in one split",
         "search_negative_policy": "same-event non-answer document with least fact-token overlap",
