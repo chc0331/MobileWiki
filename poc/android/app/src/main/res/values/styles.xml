@@ -1,0 +1,10 @@
+<resources>
+    <style name="Theme.SLMWikiPOC" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#315E53</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">#F7F6F2</item>
+        <item name="android:navigationBarColor">#F7F6F2</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+</resources>

@@ -12,7 +12,7 @@ import torch
 from sentence_transformers import SentenceTransformer
 
 from common import STUDENT_MODEL, read_jsonl
-from evaluate import THRESHOLDS, dense_search, document_vectors, encode_documents, groups_for, pair_f1
+from evaluate import dense_search, document_vectors, encode_documents, groups_for, pair_f1, select_cluster_threshold
 
 
 def select(args: argparse.Namespace) -> None:
@@ -42,20 +42,23 @@ def select(args: argparse.Namespace) -> None:
         model.max_seq_length = training["settings"]["max_length"]
         chunks, chunk_ids = encode_documents(model, documents, "clustering", args.batch_size)
         vectors = document_vectors(chunks, chunk_ids, documents)
-        pair_results = [
-            {"threshold": threshold, **pair_f1(pairs, groups_for(documents, vectors, threshold))}
-            for threshold in THRESHOLDS
-        ]
-        best_pair = max(pair_results, key=lambda row: (row["f1"], -row["threshold"]))
+        best_cluster, threshold_candidates = select_cluster_threshold(documents, vectors)
+        selected_groups = groups_for(documents, vectors, best_cluster["threshold"])
+        sampled_pair = pair_f1(pairs, selected_groups)
         search = dense_search(model, documents, queries, args.batch_size)
         results.append(
             {
                 "checkpoint": checkpoint.name,
-                "threshold": best_pair["threshold"],
-                "pair_f1": best_pair["f1"],
+                "threshold": best_cluster["threshold"],
+                "all_event_pair_f1": best_cluster["f1"],
+                "all_event_pair_precision": best_cluster["precision"],
+                "all_event_pair_recall": best_cluster["recall"],
+                "all_event_pair_false_merges": best_cluster["fp"],
+                "sampled_pair_f1": sampled_pair["f1"],
+                "threshold_candidates": threshold_candidates,
                 "search_recall_at_5": search["recall_at_5"],
                 "search_mrr": search["mrr"],
-                "selection_score": best_pair["f1"] + search["mrr"],
+                "selection_score": best_cluster["f1"] + search["mrr"],
             }
         )
         del model

@@ -1,10 +1,11 @@
 import json
 
+import numpy as np
 import pytest
 
 from common import event_card
 from curate import curate_row
-from evaluate import all_event_pair_f1, pair_f1
+from evaluate import all_event_pair_f1, pair_f1, select_cluster_threshold
 from generate import parse_response
 from prepare import compile_rows
 from repair_duplicates import duplicate_events
@@ -129,3 +130,16 @@ def test_all_event_pairs_exposes_overmerged_groups():
     assert result["fp"] == 4
     assert result["fn"] == 0
     assert result["f1"] == pytest.approx(0.5)
+
+
+def test_cluster_threshold_uses_all_event_pairs_and_tiebreaks_toward_fewer_merges():
+    docs = [
+        {"doc_id": "a0", "event_id": "a"}, {"doc_id": "a1", "event_id": "a"},
+        {"doc_id": "b0", "event_id": "b"}, {"doc_id": "b1", "event_id": "b"},
+    ]
+    vectors = np.asarray([[1.0, 0.0], [0.99, 0.01], [0.0, 1.0], [0.01, 0.99]], dtype=np.float32)
+    selected, candidates = select_cluster_threshold(docs, vectors, (0.05, 0.99))
+
+    assert [candidate["f1"] for candidate in candidates] == pytest.approx([1.0, 0.5])
+    assert selected["threshold"] == 0.05
+    assert selected["fp"] == 0

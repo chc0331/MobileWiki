@@ -1,0 +1,24 @@
+{
+  "status": "provisional_pending_human_review",
+  "dataset_id": "heecchoi/slm-wiki-embeddinggemma2-text-synthetic-v1",
+  "dataset_revision": "ddba19537f56966c5fbe352707b93e71f57ccdf0",
+  "source_manifest_sha256": "90cb497f4538ea07f1ce6e2a8a3b1b51943df0efa27f9f579526aef5251528dd",
+  "source_file_sha256": {
+    "triplets.jsonl": "985090b2a98218c459f6aa327c2ca220f654017a1156300602241ddea51d7737",
+    "pairs.jsonl": "6da9d61c43ad0a88831bdd8cf197b407dbfec105107ceef3ceb5caba2b191956",
+    "queries.jsonl": "cd61067435e3dbe8e261c6a93e74e8251c5b30ebcf27f938659a6f6bc7b3bb01",
+    "documents.jsonl": "9613d410d6e6b060669858d8d6c122028f71b14779d2d0ab1bbb2a038b3cc89e"
+  },
+  "counts": {
+    "documents": 1000,
+    "queries": 140,
+    "pairs": 100
+  },
+  "query_limit": 140,
+  "cluster_threshold": 0.05,
+  "threshold_selection": "development full-event pair F1; ties prefer lower threshold",
+  "selected_checkpoint": "checkpoint-250",
+  "human_review": "pending; all automatic metrics are provisional",
+  "evaluation_json_sha256": "c5c94bcf4233ffc258b5dae089c1324eda4e5462865b7b0d2ae828251c5f1b3f",
+  "sample_notes_sha256": "4b4231d0244878005acafe09cc89c5510a40db7305ad15c815620c9305d8dd56"
+}

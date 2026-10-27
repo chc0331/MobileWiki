@@ -1,0 +1,9 @@
+.gradle/
+build/
+app/build/
+app/src/main/assets/model/embedding_encoder.tflite
+app/src/main/assets/model/embedding_encoder.onnx
+app/src/main/assets/model/embedding_encoder.manifest.json
+app/src/main/assets/model/tokenizer.json
+app/src/main/assets/model/onnx_export_diagnostics/
+dist/

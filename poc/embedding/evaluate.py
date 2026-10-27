@@ -79,6 +79,19 @@ def groups_for(documents: list[dict], vectors: np.ndarray, threshold: float) -> 
     return {document["doc_id"]: int(label) for document, label in zip(documents, labels)}
 
 
+def select_cluster_threshold(
+    documents: list[dict],
+    vectors: np.ndarray,
+    thresholds: tuple[float, ...] = THRESHOLDS,
+) -> tuple[dict, list[dict]]:
+    candidates = [
+        {"threshold": threshold, **all_event_pair_f1(documents, groups_for(documents, vectors, threshold))}
+        for threshold in thresholds
+    ]
+    selected = max(candidates, key=lambda row: (row["f1"], -row["threshold"]))
+    return selected, candidates
+
+
 def chunk_document(document: dict, tokenizer, max_tokens: int = 420, overlap: int = 64) -> list[dict]:
     tokens = tokenizer.encode(document["text"], add_special_tokens=False)
     if len(tokens) <= max_tokens:
@@ -282,11 +295,8 @@ def evaluate(args: argparse.Namespace) -> None:
     test_queries = [query for query in queries if query["split"] == "test"][:140]
     dev_chunks, dev_chunk_ids = encode_documents(model, dev_docs, "clustering", args.batch_size)
     dev_vectors = document_vectors(dev_chunks, dev_chunk_ids, dev_docs)
-    tuning = [
-        {"threshold": threshold, **pair_f1(dev_pairs, groups_for(dev_docs, dev_vectors, threshold))}
-        for threshold in THRESHOLDS
-    ]
-    selected = max(tuning, key=lambda row: (row["f1"], -row["threshold"]))
+    selected, threshold_candidates = select_cluster_threshold(dev_docs, dev_vectors)
+    selected_groups = groups_for(dev_docs, dev_vectors, selected["threshold"])
     test_chunks, test_chunk_ids = encode_documents(model, test_docs, "clustering", args.batch_size)
     test_vectors = document_vectors(test_chunks, test_chunk_ids, test_docs)
     groups = groups_for(test_docs, test_vectors, selected["threshold"])
@@ -312,7 +322,9 @@ def evaluate(args: argparse.Namespace) -> None:
         },
         "dataset_files": manifest["files"],
         "dev_selected_threshold": selected["threshold"],
-        "dev_pair_f1": selected["f1"],
+        "dev_threshold_candidates": threshold_candidates,
+        "dev_all_event_pairs": selected,
+        "dev_sampled_pairs": pair_f1(dev_pairs, selected_groups),
         "test_pair": pair_f1(test_pairs, groups),
         "test_all_event_pairs": all_event_pair_f1(test_docs, groups),
         "test_dense_search": dense_search(model, test_docs, test_queries, args.batch_size),
