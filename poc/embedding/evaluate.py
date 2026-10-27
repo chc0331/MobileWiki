@@ -6,8 +6,10 @@ import argparse
 import csv
 import json
 import math
+import platform
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
+from importlib.metadata import version
 from pathlib import Path
 
 import numpy as np
@@ -257,6 +259,15 @@ def evaluate(args: argparse.Namespace) -> None:
         "status": manifest["status"],
         "model": model_id,
         "base_revision": base_revision,
+        "teacher_id": manifest["teacher_id"],
+        "teacher_revision": manifest["teacher_revision"],
+        "prompt_version": manifest["prompt_version"],
+        "environment": {
+            "python": platform.python_version(),
+            "torch": version("torch"),
+            "sentence_transformers": version("sentence-transformers"),
+            "scikit_learn": version("scikit-learn"),
+        },
         "dataset_files": manifest["files"],
         "dev_selected_threshold": selected["threshold"],
         "dev_pair_f1": selected["f1"],

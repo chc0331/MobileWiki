@@ -212,6 +212,10 @@ def prepare(args: argparse.Namespace) -> None:
         "teacher_revision": raw[0]["teacher_revision"],
         "teacher_runtime": subprocess.run(["ollama", "--version"], capture_output=True, text=True, check=True).stdout.strip(),
         "prompt_version": raw[0]["prompt_version"],
+        "code_files": {
+            name: sha256(Path(__file__).with_name(name))
+            for name in ("common.py", "generate.py", "prepare.py")
+        },
         "split_policy": "families, events, and source cards stay in one split",
         "counts": counts,
         "repair_counts": dict(Counter(repair for row in raw for repair in row.get("repairs", []))),

@@ -5,9 +5,11 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import tempfile
 from pathlib import Path
 
 from common import read_jsonl, sha256, write_jsonl
+from prepare import write_review
 from validate import validate_dataset
 
 
@@ -17,12 +19,28 @@ def apply_review(folder: Path) -> None:
         rows = list(csv.DictReader(stream))
     if len(rows) != 240 or len({row["item_id"] for row in rows}) != 240:
         raise ValueError("Expected 140 search questions and 100 pairs in the review sheet")
+    queries = read_jsonl(folder / "queries.jsonl")
+    pairs = read_jsonl(folder / "pairs.jsonl")
+    with tempfile.TemporaryDirectory(dir=folder.parent) as temporary:
+        expected_path = Path(temporary) / "review.csv"
+        write_review(expected_path, {
+            "documents": read_jsonl(folder / "documents.jsonl"),
+            "queries": queries,
+            "pairs": pairs,
+        })
+        with expected_path.open(encoding="utf-8", newline="") as stream:
+            expected = {row["item_id"]: row for row in csv.DictReader(stream)}
+    fixed_fields = ("kind", "item_id", "question_or_left", "evidence_or_right", "gold")
+    if any(
+        row["item_id"] not in expected
+        or any(row[field] != expected[row["item_id"]][field] for field in fixed_fields)
+        for row in rows
+    ):
+        raise ValueError("Review sheet content differs from the dataset; fix source data and regenerate the sheet")
     incomplete = [row["item_id"] for row in rows if row["accepted"].strip().lower() not in {"yes", "y"}]
     if incomplete:
         raise ValueError(f"Review is incomplete or rejected for {len(incomplete)} items")
     reviewed_ids = {row["item_id"] for row in rows}
-    queries = read_jsonl(folder / "queries.jsonl")
-    pairs = read_jsonl(folder / "pairs.jsonl")
     test_queries = [row for row in queries if row["split"] == "test"]
     expected_ids = {row["query_id"] for row in test_queries[:140]}
     expected_ids |= {row["pair_id"] for row in pairs if row["split"] == "test"}

@@ -26,7 +26,9 @@ def validate_dataset(folder: Path, partial: bool = False) -> dict:
     if len(set(text_keys)) != len(text_keys):
         raise ValueError("Duplicate document text")
     pii = re.compile(r"\b01[016789][- ]?\d{3,4}[- ]?\d{4}\b|\b\d{6}-?[1-4]\d{6}\b|\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b")
-    if any(pii.search(text) for text in text_keys):
+    checked_texts = text_keys + [item["title"] for item in documents]
+    checked_texts += [item["text"] + " " + item["evidence"] for item in queries]
+    if any(pii.search(text) for text in checked_texts):
         raise ValueError("Phone number, resident ID, or email-shaped text found")
     if not partial:
         vectors = TfidfVectorizer(analyzer="char", ngram_range=(3, 5), min_df=2).fit_transform(text_keys)

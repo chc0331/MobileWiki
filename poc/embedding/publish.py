@@ -61,9 +61,13 @@ pretty_name: SLM Wiki synthetic Korean text notes
 
 실제 사용자 기록을 쓰지 않았다. 로컬 `{manifest['teacher_id']}` 모델의
 `{manifest['teacher_revision']}` digest로 만든 가상 생활 메모다.
-학습·개발·평가 분할과 근거 문서 ID는 `manifest.json`에 기록했다.
-고정 평가 자료의 질문 140개와 문서 쌍 100개는 원문 대조 검수 뒤 올렸다.
-이 자료로 얻은 결과를 실제 개인정보나 모든 한국어 메모에 일반화하지 않는다.
+`documents.jsonl`에는 원문 2,100건, `queries.jsonl`에는 검색 질문과 근거,
+`triplets.jsonl`에는 학습용 세 쌍, `pairs.jsonl`에는 문서 묶기 평가 쌍이 있다.
+학습 800건, 개발 300건, 고정 평가 1,000건을 가족·사건 단위로 분리했다.
+근거 문서 ID, 교사 모델·프롬프트 버전, 생성 코드와 데이터 파일의 해시는 `manifest.json`에 남겼다.
+고정 평가 질문 140개와 문서 쌍 100개의 정답은 원문 대조 검수했다.
+나머지 모든 문장을 사람이 검토한 것은 아니며 자동 수정 내역은 `raw_events.jsonl`에 남겼다.
+실제 개인정보나 모든 한국어 메모에 성능을 일반화하지 않는다.
 """,
         encoding="utf-8",
     )
@@ -75,20 +79,27 @@ pretty_name: SLM Wiki synthetic Korean text notes
     )
     dataset_revision = api.repo_info(dataset_repo, repo_type="dataset").sha
     downloaded_dataset = Path(snapshot_download(dataset_repo, repo_type="dataset", revision=dataset_revision))
-    for name, expected in manifest["files"].items():
-        if sha256(downloaded_dataset / name) != expected:
-            raise ValueError(f"Hub dataset hash mismatch: {name}")
+    validate_dataset(downloaded_dataset)
+    if sha256(downloaded_dataset / "raw_events.jsonl") != manifest["raw_sha256"]:
+        raise ValueError("Hub raw teacher output hash mismatch")
 
     shutil.copytree(adapter, model_stage)
     shutil.copy2(adapter.parent / "training.json", model_stage / "training.json")
     shutil.copy2(base_eval, model_stage / "base_evaluation.json")
     shutil.copy2(tuned_eval, model_stage / "tuned_evaluation.json")
+    tuned_labels = tuned_eval.with_suffix(".labels.jsonl")
+    tag_review = tuned_eval.with_suffix(".tag_review.csv")
+    if not tuned_labels.exists() or not tag_review.exists():
+        raise FileNotFoundError("Tuned tag labels or review sheet are missing")
+    shutil.copy2(tuned_labels, model_stage / "tag_labels.jsonl")
+    shutil.copy2(tag_review, model_stage / "tag_review.csv")
     (model_stage / "README.md").write_text(
         f"""---
 language: ko
 base_model: google/embeddinggemma-2
 datasets:
 - {dataset_repo}
+license: apache-2.0
 ---
 
 # SLM Wiki EmbeddingGemma 2 한국어 텍스트 어댑터
@@ -96,12 +107,24 @@ datasets:
 기반 모델: `google/embeddinggemma-2` @ `{training['base_revision']}`.
 학습 데이터: `{dataset_repo}` @ `{dataset_revision}`.
 이 저장소에는 텍스트 인코더의 LoRA 어댑터와 평가 기록을 둔다.
+실행할 때는 위 revision의 텍스트 전용 기반 모델을 먼저 열고 이 어댑터를 붙인다.
+기반 모델까지 합친 독립 실행 파일은 아니다.
 Android 변환·속도·메모리 기준은 아직 시험하지 않았다.
 
 평가 상태: `{tuned_metrics['status']}`.
 검색 Recall@5: {tuned_metrics['test_dense_search']['recall_at_5']:.3f}.
 묶음 문서 쌍 F1: {tuned_metrics['test_pair']['f1']:.3f}.
+묶음 태그와 근거는 `tag_labels.jsonl`에 기록했다. 태그 적합성은
+`tag_review.csv`에서 별도로 확인해야 한다.
 """,
+        encoding="utf-8",
+    )
+    model_files = {
+        path.relative_to(model_stage).as_posix(): sha256(path)
+        for path in model_stage.rglob("*") if path.is_file()
+    }
+    (model_stage / "model_files.json").write_text(
+        json.dumps(model_files, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
     api.upload_folder(
@@ -114,6 +137,9 @@ Android 변환·속도·메모리 기준은 아직 시험하지 않았다.
     downloaded_model = Path(snapshot_download(model_repo, revision=model_revision))
     if not (downloaded_model / "modules.json").exists():
         raise ValueError("Hub model reload check failed")
+    for name, expected in model_files.items():
+        if sha256(downloaded_model / name) != expected:
+            raise ValueError(f"Hub model hash mismatch: {name}")
     from evaluate import evaluate
 
     hub_evaluation_path = stage / "hub_evaluation.json"
