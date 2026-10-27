@@ -52,6 +52,14 @@ def test_answer_sentence_is_removed_from_same_event_distractor():
     assert "d1: removed answer-bearing sentence" in parsed["repairs"]
 
 
+def test_teacher_response_rejects_duplicate_document_text():
+    row = sample_row(0)
+    row["documents"][2]["text"] = row["documents"][1]["text"]
+    response = json.dumps({key: row[key] for key in ("documents", "query", "evidence")}, ensure_ascii=False)
+    with pytest.raises(ValueError, match="Duplicate document text"):
+        parse_response(response, event_card("train", 0).as_dict())
+
+
 def test_search_uses_same_event_distractor_and_clustering_uses_other_event():
     rows = compile_rows([sample_row(0), sample_row(10)], allow_partial=True)
     assert len(rows["documents"]) == 8

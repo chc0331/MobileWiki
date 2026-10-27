@@ -115,6 +115,9 @@ def parse_response(response: str, card: dict) -> dict:
     for document in documents:
         if not 40 <= len(document["text"]) <= 500:
             raise ValueError("Document length outside 40–500 characters")
+    normalized_texts = [" ".join(document["text"].split()) for document in documents]
+    if len(set(normalized_texts)) != DOCUMENTS_PER_EVENT:
+        raise ValueError("Duplicate document text within one event")
     question, evidence = result.get("query"), result.get("evidence")
     if not isinstance(question, str):
         raise ValueError("Invalid query")
