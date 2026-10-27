@@ -1,4 +1,4 @@
-"""Upload reviewed synthetic data and the trained adapter to private Hub repos."""
+"""Upload synthetic data and the trained adapter to private Hub repos."""
 
 from __future__ import annotations
 
@@ -26,15 +26,19 @@ def publish(args: argparse.Namespace) -> None:
         raise ValueError("Curated source does not match the dataset manifest")
     if not manifest["curation"] or sha256(teacher_raw) != manifest["curation"]["teacher_raw_sha256"]:
         raise ValueError("Teacher output does not match the curation manifest")
-    if manifest["status"] != "human_reviewed":
-        raise ValueError("Human review must be completed before Hub upload")
+    reviewed = manifest["status"] == "human_reviewed"
+    provisional = manifest["status"] == "provisional_pending_human_review"
+    if not reviewed and not (provisional and args.allow_provisional):
+        raise ValueError("Use --allow-provisional for a private pre-review upload")
     if not all(path.exists() for path in (adapter / "modules.json", curated, teacher_raw, base_eval, tuned_eval)):
         raise FileNotFoundError("Adapter, source events, or evaluation reports are missing")
     training = json.loads((adapter.parent / "training.json").read_text(encoding="utf-8"))
     base_metrics = json.loads(base_eval.read_text(encoding="utf-8"))
     tuned_metrics = json.loads(tuned_eval.read_text(encoding="utf-8"))
     if base_metrics["dataset_files"] != manifest["files"] or tuned_metrics["dataset_files"] != manifest["files"]:
-        raise ValueError("Evaluation reports do not match the reviewed dataset")
+        raise ValueError("Evaluation reports do not match the dataset files")
+    if base_metrics["status"] != manifest["status"] or tuned_metrics["status"] != manifest["status"]:
+        raise ValueError("Evaluation status does not match the dataset review status")
     api = HfApi()
     user = api.whoami()["name"]
     dataset_repo = args.dataset_repo or f"{user}/slm-wiki-embeddinggemma2-text-synthetic-v1"
@@ -55,6 +59,11 @@ def publish(args: argparse.Namespace) -> None:
     shutil.copytree(dataset, dataset_stage)
     shutil.copy2(curated, dataset_stage / "curated_events.jsonl")
     shutil.copy2(teacher_raw, dataset_stage / "teacher_raw_events.jsonl")
+    review_note = (
+        "정답 240개(검색 질문 140개와 문서 쌍 100개)를 사람이 원문 대조 검수했다."
+        if reviewed
+        else "검수 상태: 사람 정답 검수 대기. 아래 자동 평가 결과는 잠정 진단이며 공식 판정에 사용할 수 없다."
+    )
     (dataset_stage / "README.md").write_text(
         f"""---
 language: ko
@@ -69,7 +78,7 @@ pretty_name: SLM Wiki synthetic Korean text notes
 `triplets.jsonl`에는 학습용 세 쌍, `pairs.jsonl`에는 문서 묶기 평가 쌍이 있다.
 학습 800건, 개발 300건, 고정 평가 1,000건을 가족·사건 단위로 분리했다.
 근거 문서 ID, 교사 모델·프롬프트 버전, 생성 코드와 데이터 파일의 해시는 `manifest.json`에 남겼다.
-고정 평가 질문 140개와 문서 쌍 100개의 정답은 원문 대조 검수했다.
+{review_note}
 생성 단계의 1차 보정본은 `teacher_raw_events.jsonl`, 답 단서 제거본은 `curated_events.jsonl`이다.
 자동 수정 내역은 두 파일의 `repairs`와 `curation_repairs`에 남겼다.
 교사 모델의 보정 전 응답 전문은 저장하지 않았다.
@@ -83,7 +92,10 @@ pretty_name: SLM Wiki synthetic Korean text notes
         repo_id=dataset_repo,
         repo_type="dataset",
         folder_path=dataset_stage,
-        commit_message="Add reviewed synthetic Korean text embedding dataset",
+        commit_message=(
+            "Add reviewed synthetic Korean text embedding dataset"
+            if reviewed else "Add provisional synthetic Korean text embedding dataset"
+        ),
     )
     dataset_revision = api.repo_info(dataset_repo, repo_type="dataset").sha
     downloaded_dataset = Path(snapshot_download(dataset_repo, repo_type="dataset", revision=dataset_revision))
@@ -122,8 +134,10 @@ license: apache-2.0
 Android 변환·속도·메모리 기준은 아직 시험하지 않았다.
 
 평가 상태: `{tuned_metrics['status']}`.
+사람 정답 검수: {'완료' if reviewed else '대기 중'}.
+검수 대기 중인 지표는 잠정 진단이며 공식 품질 판정으로 사용할 수 없다.
 검색 Recall@5: {tuned_metrics['test_dense_search']['recall_at_5']:.3f}.
-검수 표본 문서 쌍 100개 F1: {tuned_metrics['test_pair']['f1']:.3f}.
+평가 문서 쌍 100개 F1: {tuned_metrics['test_pair']['f1']:.3f}.
 전체 합성 사건의 모든 문서 쌍 F1: {tuned_metrics['test_all_event_pairs']['f1']:.3f}.
 전체 쌍 점수는 사건 카드의 자동 정답에 따른 진단이며 모든 쌍을 사람이 확인하지 않았다.
 묶음 태그와 근거는 `tag_labels.jsonl`에 기록했다. 태그 적합성은
@@ -159,7 +173,7 @@ Android 변환·속도·메모리 기준은 아직 시험하지 않았다.
         argparse.Namespace(
             dataset=str(downloaded_dataset),
             adapter=str(downloaded_model),
-            base_revision=None,
+            base_revision=training["base_revision"],
             output=str(hub_evaluation_path),
             batch_size=2,
         )
@@ -193,6 +207,11 @@ def main() -> None:
     parser.add_argument("--tuned-eval", default="artifacts/evaluation/tuned.json")
     parser.add_argument("--dataset-repo")
     parser.add_argument("--model-repo")
+    parser.add_argument(
+        "--allow-provisional",
+        action="store_true",
+        help="Upload a private provisional snapshot before human review; metrics remain nonofficial",
+    )
     parser.add_argument("--stage", default="artifacts/publish_stage")
     parser.add_argument("--output", default="artifacts/hub_publish.json")
     publish(parser.parse_args())

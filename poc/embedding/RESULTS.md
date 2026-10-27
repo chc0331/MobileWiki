@@ -1,6 +1,6 @@
 # EmbeddingGemma 2 한국어 메모 실험 결과
 
-기록일: 2026-10-28 · 상태: **잠정 결과**. 평가 정답의 사람 검수와 Hugging Face Hub 업로드는 완료되지 않았다.
+기록일: 2026-10-28 · 상태: **잠정 결과**. 평가 정답·태그 사람 검수는 남아 있다. 사용자 요청에 따라 잠정 상태를 표시한 데이터와 모델을 비공개 Hugging Face Hub에 올렸다.
 
 ## 이번에 확인한 범위
 
@@ -36,10 +36,12 @@ M2 Mac에서 텍스트 전용 `google/embeddinggemma-2`에 작은 추가 가중�
 
 이 실험에서 검색은 합성 자료 기준으로 개선됐다. 문서 쌍 100개의 F1은 목표 0.80을 넘었지만, 전체 사건 쌍의 F1은 0.529였다. 서로 다른 사건을 한 묶음으로 합치는 문제가 커서 묶음 품질 목표 달성을 확인하지 못했다. 가상 인물 이름이 질문에 항상 들어가고 정답이 첫 메모에만 있는 자료 구조도 검색 점수를 높일 수 있다. 문장 자연스러움과 정답은 사람 검수 전이다. 따라서 임베딩 하위 POC의 최종 합격은 보류하고, 앱 전체의 가능·조건부 가능·불가능 판정은 하지 않는다.
 
-다음에는 검색 질문 140개와 문서 쌍 100개의 원문·정답을 사람이 대조해야 한다. 태그 표본 30개도 별도로 확인한다. 잘못된 항목은 사건 원본을 고치고 새 평가 자료로 다시 검증한다. 묶음 기준과 학습 예시는 개발 자료의 **전체 사건 쌍**으로 개선한 뒤, 답이 늘 첫 메모에 있지 않은 새로운 평가 자료에서 시험해야 한다. 검수 전에는 비공개 Hugging Face Hub에도 자료와 어댑터를 올리지 않는다.
+다음에는 검색 질문 140개와 문서 쌍 100개의 원문·정답을 사람이 대조해야 한다. 태그 표본 30개도 별도로 확인한다. 잘못된 항목은 사건 원본을 고치고 새 평가 자료로 다시 검증한다. 개발 자료의 **전체 사건 쌍**으로 묶음 기준과 학습 예시를 개선한 뒤, 답이 늘 첫 메모에 있지 않은 새로운 평가 자료에서 시험해야 한다. 현재 Hub revision은 잠정 보관본이며 사람 검수를 마친 공식 평가·배포판이 아니다.
 
 ## 로컬 산출물
 
-실행 파일과 데이터는 `poc/embedding/artifacts/`에 있으며 Git에는 포함되지 않는다. `dataset/manifest.json`은 교사·코드·파일 해시와 검수 상태를 담는다. `trained/training.json`에는 기반 모델 revision과 학습 설정이 있다. `evaluation/base.json`과 `evaluation/tuned.json`은 같은 데이터로 측정한 상세 점수다. `review140_dataset/review.csv`는 사람 정답 검수용 240행이고, `evaluation/tuned.tag_review.csv`는 태그 검토용 30행이다. 앞 검수표의 `accepted`와 `comment`를 내용이 같은 `dataset/review.csv`로 옮긴 뒤 `review.py`를 적용해야 Hub 업로드가 가능하다. 태그 검토는 별도 품질 판단에 사용한다.
+실행 파일과 데이터는 `poc/embedding/artifacts/`에 있으며 Git에는 포함되지 않는다. `dataset/manifest.json`은 교사·코드·파일 해시와 검수 상태를 담는다. `trained/training.json`에는 기반 모델 revision과 학습 설정이 있다. `evaluation/base.json`과 `evaluation/tuned.json`은 같은 데이터로 측정한 상세 점수다. `review140_dataset/review.csv`는 사람 정답 검수용 240행이고, `evaluation/tuned.tag_review.csv`는 태그 검토용 30행이다. 앞 검수표의 `accepted`와 `comment`를 내용이 같은 `dataset/review.csv`로 옮겨 `review.py`를 적용하면, 같은 비공개 저장소에 검수 완료 상태의 새 revision을 올릴 수 있다. 태그 검토는 별도 품질 판단에 사용한다.
+
+현재 잠정본은 [비공개 데이터셋 revision](https://huggingface.co/datasets/heecchoi/slm-wiki-embeddinggemma2-text-synthetic-v1/tree/ddba19537f56966c5fbe352707b93e71f57ccdf0)과 [비공개 모델 revision](https://huggingface.co/heecchoi/slm-wiki-embeddinggemma2-ko-lora-v1/tree/f51442c47345d2f3e9113c5ad77057e42d14ea59)에 보관했다. Hub에서 다시 받은 데이터 파일 해시와 LoRA 파일 해시를 대조했고, 고정된 기반 모델 revision으로 평가를 재실행해 기존 점수와 일치하는지 확인했다. 상세 revision과 실행 기록은 `artifacts/hub_publish.json`에 있다.
 
 [실행 안내](README.md) · [상세 PRD](../SLM_Wiki_PRD.md)

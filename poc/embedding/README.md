@@ -58,13 +58,17 @@ ollama stop qwen3:8b
 .venv/bin/python publish.py
 ```
 
-`publish.py`는 평가 정답 240개를 검수한 합성 데이터와 LoRA 어댑터를 서로 다른 비공개 Hugging Face Hub 저장소에 올린다. LoRA는 기반 모델의 일부에 작은 학습 값을 덧붙이는 방식이다. 전체 revision은 저장소의 특정 버전을 가리키는 식별값이다. 이 값과 데이터 파일 해시를 확인한다. 실제 사용자 메모·질문·로그는 생성 입력이나 업로드 대상에 넣지 않는다. Hub 인증 정보는 개발 PC에서만 사용한다.
+사람 검수 전 비공개 보관본을 올리려면 `publish.py --allow-provisional`을 실행한다. 이때 Dataset Card와 Model Card에 잠정 상태를 표시한다. 잠정 보관본은 공식 품질 판정에 사용할 수 없다. 평가 정답 240개를 확인하고 `review.py`를 통과한 자료는 `publish.py`를 추가 옵션 없이 실행해 검수 완료 revision으로 올린다.
+
+`publish.py`는 합성 데이터와 LoRA 어댑터를 서로 다른 비공개 Hugging Face Hub 저장소에 올린다. LoRA는 기반 모델의 일부에 작은 학습 값을 덧붙이는 방식이다. 전체 revision은 저장소의 특정 버전을 가리키는 식별값이다. 이 값과 데이터 파일 해시를 확인한다. 실제 사용자 메모·질문·로그는 생성 입력이나 업로드 대상에 넣지 않는다. Hub 인증 정보는 개발 PC에서만 사용한다.
 
 ## 현재 확인 상태
 
-- 가상 사건 525개에서 메모 2,100건을 만들고 분할·중복·근거 검사를 통과했다. 중복 사건 8개는 재생성했다.
+- 가상 사건 525개에서 메모 2,100건을 만들었다. 분할·중복·근거 검사를 통과했으며, 중복 사건 8개는 재생성했다.
 - EmbeddingGemma 2 텍스트 인코더를 250단계 학습하고 2회차 체크포인트를 개발 자료로 골랐다. MPS는 Mac GPU 계산 경로다.
-- 고정 평가의 잠정 검색 Recall@5는 134/140(95.7%)이다. 문서 쌍 표본 F1은 0.990이지만 전체 사건 쌍 F1은 0.529다. 해석과 한계는 [잠정 결과](RESULTS.md)에 기록했다.
-- 사람 정답·태그 검수와 비공개 Hub 업로드는 아직 완료되지 않았다. Android 앱은 시험하지 않았다.
+- 고정 평가에서 잠정 검색 Recall@5는 134/140(95.7%)이다. 문서 쌍 표본 F1은 0.990이지만 전체 사건 쌍 F1은 0.529다. 해석과 한계는 [잠정 결과](RESULTS.md)에 기록했다.
+- 데이터와 LoRA 어댑터를 검수 대기 상태로 비공개 Hub에 올린 뒤 다시 내려받아 해시와 모델 평가를 대조했다. 정답 240개와 태그 30개의 사람 검수는 남아 있다. Android 앱은 시험하지 않았다.
+
+현재 저장소: [합성 데이터](https://huggingface.co/datasets/heecchoi/slm-wiki-embeddinggemma2-text-synthetic-v1/tree/ddba19537f56966c5fbe352707b93e71f57ccdf0) · [LoRA 어댑터](https://huggingface.co/heecchoi/slm-wiki-embeddinggemma2-ko-lora-v1/tree/f51442c47345d2f3e9113c5ad77057e42d14ea59). 두 저장소 모두 비공개다.
 
 [잠정 결과](RESULTS.md) · [POC 한 페이지 요약](../README.md) · [상세 PRD](../SLM_Wiki_PRD.md)
