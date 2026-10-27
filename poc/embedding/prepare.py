@@ -14,6 +14,7 @@ from common import (
     DOCUMENTS_PER_EVENT,
     PARAPHRASE_QUERIES,
     SPLIT_EVENTS,
+    TOPICS,
     cards,
     read_jsonl,
     sha256,
@@ -68,7 +69,7 @@ def compile_rows(raw: list[dict], allow_partial: bool = False) -> dict[str, list
             }
             documents.append(document)
             event_docs[card.event_id].append(document)
-        use_paraphrase = int(card.event_id.split("-")[-1]) % 2 == 0
+        use_paraphrase = (int(card.event_id.split("-")[-1]) // len(TOPICS)) % 2 == 0
         question = PARAPHRASE_QUERIES[card.category] if use_paraphrase else row["query"].strip()
         query_source = "paraphrase_template" if use_paraphrase else "teacher"
         if not use_paraphrase and (ord(card.fact_label[-1]) - 0xAC00) % 28 == 0:
@@ -76,9 +77,8 @@ def compile_rows(raw: list[dict], allow_partial: bool = False) -> dict[str, list
             if corrected != question:
                 question = corrected
                 query_source = "teacher_grammar_fixed"
-        context = [value for value in (card.person, card.date, card.category) if value not in question]
-        if context:
-            question = f"{' '.join(context)} 기록에서 {question}"
+        if card.person not in question:
+            question = f"{card.person} 기록에서 {question}"
         relevant = [
             document["doc_id"]
             for document in event_docs[card.event_id]
@@ -213,6 +213,7 @@ def prepare(args: argparse.Namespace) -> None:
         for name, items in rows.items() if name != "triplets"
     }
     counts["triplets"] = len(rows["triplets"])
+    counts["triplets_by_task"] = dict(Counter(item["task"] for item in rows["triplets"]))
     manifest = {
         "created_at": datetime.now(timezone.utc).isoformat(),
         "status": "provisional_pending_human_review",

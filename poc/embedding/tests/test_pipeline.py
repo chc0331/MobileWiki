@@ -56,6 +56,8 @@ def test_search_uses_same_event_distractor_and_clustering_uses_other_event():
     rows = compile_rows([sample_row(0), sample_row(10)], allow_partial=True)
     assert len(rows["documents"]) == 8
     assert rows["documents"][0]["title"].startswith(event_card("train", 0).person)
+    assert event_card("train", 0).date not in rows["queries"][0]["text"]
+    assert [query["query_source"] for query in rows["queries"]] == ["paraphrase_template", "teacher"]
     assert len(rows["triplets"]) == 10
     for triplet in rows["triplets"]:
         same_event = triplet["positive_id"].split("-d")[0] == triplet["negative_id"].split("-d")[0]
