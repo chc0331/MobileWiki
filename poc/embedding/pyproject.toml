@@ -1,0 +1,24 @@
+[project]
+name = "slm-wiki-embedding-poc"
+version = "0.1.0"
+description = "Local Korean document retrieval and clustering proof of concept"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "datasets>=4.3,<5",
+  "huggingface-hub>=0.36,<2",
+  "kiwipiepy>=0.22,<1",
+  "numpy>=2.1,<3",
+  "peft==0.21.2",
+  "pillow>=11,<13",
+  "scikit-learn>=1.7,<2",
+  "sentence-transformers==6.2.0",
+  "torch>=2.8,<3",
+  "torchvision>=0.27,<1",
+  "transformers==5.21.0",
+]
+
+[dependency-groups]
+dev = ["pytest>=8,<10"]
+
+[tool.uv]
+package = false

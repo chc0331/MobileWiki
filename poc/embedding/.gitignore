@@ -1,0 +1,6 @@
+.venv/
+artifacts/
+_workspace/
+__pycache__/
+.pytest_cache/
+*.pyc
