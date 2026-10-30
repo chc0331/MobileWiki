@@ -14,25 +14,52 @@ from common import (
     SEED,
     STUDENT_MODEL,
     clustering_text,
+    code_fingerprint,
+    dataset_clustering_deidentify,
+    generation_budget_path,
+    json_sha256,
     matching_doc_text,
     read_jsonl,
     search_query_text,
+    sha256,
+    verified_dataset_manifest,
 )
+
+PINNED_BASE_REVISION = "f9972ac22e696a105c482202646979e33e4b5a1e"
+LORA_MODULES = {"q_proj", "k_proj", "v_proj", "o_proj"}
+TRAIN_CODE_FILES = ("train.py", "common.py", "uv.lock")
+
+
+def lora_targets(value: str) -> list[str]:
+    targets = [item.strip() for item in value.split(",") if item.strip()]
+    if not targets or len(set(targets)) != len(targets) or set(targets) - LORA_MODULES:
+        raise argparse.ArgumentTypeError("Use unique q_proj,k_proj,v_proj,o_proj module names")
+    return targets
 
 
 def training_examples(dataset_dir: Path, limit: int | None = None) -> list[dict]:
+    manifest_path = dataset_dir / "manifest.json"
+    deidentify = dataset_clustering_deidentify(json.loads(manifest_path.read_text(encoding="utf-8"))) if manifest_path.exists() else None
     documents = {row["doc_id"]: row for row in read_jsonl(dataset_dir / "documents.jsonl")}
     queries = {row["query_id"]: row for row in read_jsonl(dataset_dir / "queries.jsonl")}
     output = []
     for item in read_jsonl(dataset_dir / "triplets.jsonl")[:limit]:
         if item["task"] == "search":
-            anchor = search_query_text(queries[item["anchor_id"]]["text"])
+            source = queries[item["anchor_id"]]
+            anchor = search_query_text(source["text"])
             positive = matching_doc_text(documents[item["positive_id"]])
             negative = matching_doc_text(documents[item["negative_id"]])
+        elif item["task"] == "clustering":
+            source = documents[item["anchor_id"]]
+            anchor = clustering_text(source, deidentify=deidentify)
+            positive = clustering_text(documents[item["positive_id"]], deidentify=deidentify)
+            negative = clustering_text(documents[item["negative_id"]], deidentify=deidentify)
         else:
-            anchor = clustering_text(documents[item["anchor_id"]])
-            positive = clustering_text(documents[item["positive_id"]])
-            negative = clustering_text(documents[item["negative_id"]])
+            raise ValueError(f"Unknown training task: {item['task']}")
+        if any(row["split"] != "train" for row in (
+            source, documents[item["positive_id"]], documents[item["negative_id"]]
+        )):
+            raise ValueError("Training examples must not include development or test documents")
         output.append({"anchor": anchor, "positive": positive, "negative": negative})
     if not output:
         raise ValueError("No training triplets found")
@@ -40,9 +67,14 @@ def training_examples(dataset_dir: Path, limit: int | None = None) -> list[dict]
 
 
 def train(args: argparse.Namespace) -> None:
+    dataset_dir = Path(args.dataset)
+    dataset_manifest = verified_dataset_manifest(dataset_dir)
+    deidentify = dataset_clustering_deidentify(dataset_manifest)
+    generation_path = generation_budget_path(dataset_dir, dataset_manifest, getattr(args, "generation_budget", None))
+    example_rows = training_examples(dataset_dir, args.limit)
+    source_files = code_fingerprint(Path(__file__).resolve().parent, TRAIN_CODE_FILES)
     import torch
     from datasets import Dataset
-    from huggingface_hub import HfApi
     from peft import LoraConfig, TaskType
     from sentence_transformers import (
         SentenceTransformer,
@@ -57,10 +89,9 @@ def train(args: argparse.Namespace) -> None:
     torch.manual_seed(SEED)
     start = time.monotonic()
     started_at = datetime.now(timezone.utc).isoformat()
-    dataset_dir = Path(args.dataset)
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
-    base_revision = HfApi().model_info(STUDENT_MODEL).sha
+    base_revision = args.base_revision
     model = SentenceTransformer(
         STUDENT_MODEL,
         revision=base_revision,
@@ -76,16 +107,16 @@ def train(args: argparse.Namespace) -> None:
         r=8,
         lora_alpha=16,
         lora_dropout=0.05,
-        target_modules=["q_proj", "v_proj"],
+        target_modules=args.lora_targets,
     )
     model.add_adapter(lora)
     trainable = sum(parameter.numel() for parameter in model.parameters() if parameter.requires_grad)
     print(f"Trainable parameters: {trainable}", flush=True)
-    examples = Dataset.from_list(training_examples(dataset_dir, args.limit))
+    examples = Dataset.from_list(example_rows)
     loss = TripletLoss(
         model,
         distance_metric=TripletDistanceMetric.COSINE,
-        triplet_margin=0.1,
+        triplet_margin=args.triplet_margin,
     )
 
     class TimeBudget(TrainerCallback):
@@ -132,7 +163,12 @@ def train(args: argparse.Namespace) -> None:
         "started_at": started_at,
         "base_model": STUDENT_MODEL,
         "base_revision": base_revision,
-        "dataset_manifest": json.loads((dataset_dir / "manifest.json").read_text(encoding="utf-8")),
+        "dataset_manifest": dataset_manifest,
+        "code_sha256": sha256(Path(__file__)),
+        "training_code_files": source_files,
+        "training_code_fingerprint": json_sha256(source_files),
+        "training_input_sha256": json_sha256(example_rows),
+        "generation_budget_path": str(generation_path) if generation_path else None,
         "trainable_parameters": trainable,
         "steps": result.global_step,
         "training_loss": result.training_loss,
@@ -151,11 +187,16 @@ def train(args: argparse.Namespace) -> None:
             "lora_rank": 8,
             "lora_alpha": 16,
             "lora_dropout": 0.05,
-            "target_modules": ["q_proj", "v_proj"],
-            "triplet_margin": 0.1,
+            "target_modules": args.lora_targets,
+            "triplet_margin": args.triplet_margin,
+            "batch_size": 1,
+            "gradient_accumulation_steps": 8,
+            "learning_rate": 2e-4,
             "max_length": args.max_length,
             "epochs": args.epochs,
             "max_steps": args.max_steps,
+            "limit": args.limit,
+            "clustering_deidentify": deidentify,
         },
     }
     (output_dir / "training.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -171,7 +212,14 @@ def main() -> None:
     parser.add_argument("--max-hours", type=float, default=12)
     parser.add_argument("--limit", type=int)
     parser.add_argument("--max-steps", type=int, default=-1)
-    train(parser.parse_args())
+    parser.add_argument("--base-revision", default=PINNED_BASE_REVISION)
+    parser.add_argument("--generation-budget", help="Generation ledger override; v3 otherwise discovers it from the dataset")
+    parser.add_argument("--triplet-margin", type=float, default=0.1)
+    parser.add_argument("--lora-targets", type=lora_targets, default=lora_targets("q_proj,v_proj"))
+    args = parser.parse_args()
+    if not 0 < args.triplet_margin <= 2:
+        parser.error("--triplet-margin must be between 0 and 2")
+    train(args)
 
 
 if __name__ == "__main__":

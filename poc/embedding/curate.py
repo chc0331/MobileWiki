@@ -9,9 +9,22 @@ import re
 from collections import Counter
 from pathlib import Path
 
-from common import PARAPHRASE_QUERIES, event_card, read_jsonl, sha256, write_jsonl
+from common import (
+    DATE_PATTERN,
+    PARAPHRASE_QUERIES,
+    RELATIVE_DATE_PATTERN,
+    RELATIONSHIP_PATTERN,
+    event_card,
+    format_event_date,
+    normalize_event_dates,
+    normalize_relative_dates,
+    remove_event_dates,
+    read_jsonl,
+    sha256,
+    write_jsonl,
+)
 
-CURATION_VERSION = "answer-cues-v1"
+CURATION_VERSION = "answer-cues-v2-balanced-shortcut"
 
 # A clue is sufficient to identify the requested fact without the evidence note.
 # Generic event words such as "소아과" and "회의" deliberately stay in distractors.
@@ -61,6 +74,9 @@ def answer_cues(fact_value: str) -> tuple[str, ...]:
 
 
 def curate_row(source: dict) -> dict:
+    if source.get("card_revision") == "context-hardneg-v3":
+        from data_v3 import curate_row as curate_v3_row
+        return curate_v3_row(source)
     row = copy.deepcopy(source)
     split, index = row["event_id"].split("-")
     card = event_card(split, int(index))
@@ -68,7 +84,24 @@ def curate_row(source: dict) -> dict:
         raise ValueError(f"Card mismatch: {row['event_id']}")
     cues = answer_cues(card.fact_value)
     repairs = []
-    for number, document in enumerate(row["documents"][1:], start=1):
+    answer_index = card.answer_doc_index
+    for number, document in enumerate(row["documents"]):
+        style = card.document_date_styles[number]
+        document["title"], title_relative_dates = normalize_relative_dates(
+            document["title"], card.date, style
+        )
+        document["text"], text_relative_dates = normalize_relative_dates(
+            document["text"], card.date, style
+        )
+        if title_relative_dates or text_relative_dates:
+            repairs.append(f"d{number}: replaced relative date with exact event date")
+        document["title"], _ = normalize_event_dates(document["title"], card.date, style)
+        document["text"], date_count = normalize_event_dates(document["text"], card.date, style)
+        if not date_count:
+            document["text"] = f"{format_event_date(card.date, style)} {document['text']}"
+            repairs.append(f"d{number}: restored event date")
+        if number == answer_index:
+            continue
         if any(cue in document["title"] for cue in cues):
             document["title"] = f"{card.category} 기록 {number}"
             repairs.append(f"d{number}: removed answer clue from title")
@@ -78,18 +111,63 @@ def curate_row(source: dict) -> dict:
             document["text"] = " ".join(kept).strip()
             repairs.append(f"d{number}: removed answer clue from text")
         if len(document["text"]) < 40:
-            document["text"] = f"{document['text']} {FALLBACKS[number]}".strip()
+            fallback = FALLBACKS[number] or FALLBACKS[1]
+            document["text"] = f"{document['text']} {fallback}".strip()
             repairs.append(f"d{number}: completed short distractor")
-        if card.date not in document["text"]:
-            document["text"] = f"{card.date} {document['text']}"
-            repairs.append(f"d{number}: restored event date")
+        document["text"], date_count = normalize_event_dates(document["text"], card.date, style)
+        if not date_count:
+            document["text"] = f"{format_event_date(card.date, style)} {document['text']}"
+            repairs.append(f"d{number}: restored event date after clue removal")
+        if RELATIVE_DATE_PATTERN.search(document["title"] + document["text"]):
+            raise ValueError(f"Relative or approximate date found: {row['event_id']}-d{number}")
         if not 40 <= len(document["text"]) <= 500:
             raise ValueError(f"Invalid curated document length: {row['event_id']}-d{number}")
         if any(cue in document["title"] + document["text"] for cue in cues):
             raise ValueError(f"Answer clue remains: {row['event_id']}-d{number}")
+    row["evidence"] = next(
+        sentence.strip()
+        for sentence in re.split(r"(?<=[.!?])\s+", row["documents"][answer_index]["text"])
+        if card.fact_value in sentence
+    )
     if any(cue in row["query"] for cue in cues):
         row["query"] = PARAPHRASE_QUERIES[card.category]
+        if card.identity_style == "named":
+            row["query"] = f"{card.person}에 관해 {row['query']}"
         repairs.append("query: replaced answer clue with paraphrase")
+    row["query"], relative_dates = normalize_relative_dates(
+        row["query"], card.date, card.query_date_style if card.query_date_style != "none" else None
+    )
+    if relative_dates:
+        repairs.append(
+            "query: removed relative date"
+            if card.query_date_style == "none"
+            else "query: replaced relative date with exact event date"
+        )
+    if RELATIVE_DATE_PATTERN.search(row["query"]):
+        raise ValueError(f"Relative or approximate date found in query: {row['event_id']}")
+    if card.query_date_style == "none":
+        row["query"], removed_dates = remove_event_dates(row["query"], card.date)
+        if removed_dates:
+            repairs.append("query: removed unassigned absolute date")
+        if DATE_PATTERN.search(row["query"]):
+            raise ValueError(f"Unexpected query date: {row['event_id']}")
+    else:
+        row["query"], date_count = normalize_event_dates(row["query"], card.date, card.query_date_style)
+        if not date_count:
+            row["query"] = f"{format_event_date(card.date, card.query_date_style)}에 {row['query']}"
+    if card.identity_style == "implicit" and (
+        card.person in row["query"] or RELATIONSHIP_PATTERN.search(row["query"])
+    ):
+        raise ValueError(f"Identity shortcut in implicit query: {row['event_id']}")
+    if card.identity_style == "named" and card.person not in row["query"]:
+        raise ValueError(f"Missing person name in named query: {row['event_id']}")
+    if any(card.person in doc["title"] for doc in row["documents"]):
+        raise ValueError(f"Person name in title: {row['event_id']}")
+    if card.identity_style == "implicit" and (
+        card.person in " ".join(doc["text"] for doc in row["documents"])
+        or RELATIONSHIP_PATTERN.search(" ".join(doc["title"] + " " + doc["text"] for doc in row["documents"]))
+    ):
+        raise ValueError(f"Identity shortcut in implicit event: {row['event_id']}")
     texts = [" ".join(item["text"].split()) for item in row["documents"]]
     if len(set(texts)) != 4:
         raise ValueError(f"Duplicate curated document text: {row['event_id']}")
@@ -106,7 +184,7 @@ def curate(input_path: Path, output_path: Path, manifest_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     write_jsonl(output_path, rows)
     summary = {
-        "version": CURATION_VERSION,
+        "version": rows[0].get("curation_version", CURATION_VERSION) if rows else CURATION_VERSION,
         "events": len(rows),
         "teacher_raw_sha256": sha256(input_path),
         "curated_sha256": sha256(output_path),

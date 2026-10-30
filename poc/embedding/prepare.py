@@ -4,17 +4,19 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
+import random
 import subprocess
 from collections import Counter, defaultdict
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 from common import (
     DOCUMENTS_PER_EVENT,
-    PARAPHRASE_QUERIES,
+    RELATIONSHIP_PATTERN,
+    SEED,
     SPLIT_EVENTS,
-    TOPICS,
     cards,
     read_jsonl,
     sha256,
@@ -22,7 +24,59 @@ from common import (
 )
 
 
+def _stable_order(value: str, seed: str) -> bytes:
+    return hashlib.sha256(f"{SEED}|{seed}|{value}".encode("utf-8")).digest()
+
+
+def _negative_pools(card, train_cards: list) -> dict[str, list]:
+    pools = {"A": [], "B": [], "C": []}
+    for candidate in train_cards:
+        if candidate.event_id == card.event_id:
+            continue
+        if candidate.family_id == card.family_id:
+            pools["A"].append(candidate)
+        elif candidate.category == card.category:
+            pools["B"].append(candidate)
+        elif (
+            candidate.fact_value == card.fact_value
+            or abs((date.fromisoformat(candidate.date) - date.fromisoformat(card.date)).days) <= 30
+        ):
+            pools["C"].append(candidate)
+    return pools
+
+
+def _cluster_type_schedule(train_cards: list) -> dict[str, list[str]]:
+    if len(train_cards) != SPLIT_EVENTS["train"]:
+        return {card.event_id: ["partial"] * DOCUMENTS_PER_EVENT for card in train_cards}
+    double_b_events: set[str] = set()
+    categories: dict[str, list] = defaultdict(list)
+    for card in train_cards:
+        categories[card.category].append(card)
+    for category, members in sorted(categories.items()):
+        ordered = sorted(members, key=lambda card: _stable_order(card.event_id, f"double-b-{category}"))
+        double_b_events.update(card.event_id for card in ordered[:4])
+
+    output = {}
+    for card in train_cards:
+        types = ["A", "A", "B", "B"] if card.event_id in double_b_events else ["A", "A", "B", "C"]
+        seed = int.from_bytes(_stable_order(card.event_id, "cluster-type-schedule")[:8], "big")
+        random.Random(seed).shuffle(types)
+        output[card.event_id] = types
+    return output
+
+
+def _pick_negative(pool: list, event_id: str, anchor_index: int, kind: str, used: set[str]):
+    ordered = sorted(pool, key=lambda card: _stable_order(card.event_id, f"{event_id}-{anchor_index}-{kind}"))
+    candidate = next((card for card in ordered if card.event_id not in used), ordered[0] if ordered else None)
+    if candidate is not None:
+        used.add(candidate.event_id)
+    return candidate
+
+
 def compile_rows(raw: list[dict], allow_partial: bool = False) -> dict[str, list[dict]]:
+    if raw and raw[0].get("card_revision") == "context-hardneg-v3":
+        from data_v3 import compile_rows as compile_v3_rows
+        return compile_v3_rows(raw, allow_partial)
     by_event: dict[str, dict] = {}
     for row in raw:
         event_id = row["event_id"]
@@ -47,6 +101,7 @@ def compile_rows(raw: list[dict], allow_partial: bool = False) -> dict[str, list
     queries: list[dict] = []
     event_docs: dict[str, list[dict]] = {}
     by_category: dict[tuple[str, str], list[str]] = defaultdict(list)
+    card_by_event = {card.event_id: card for card in cards()}
     for card in cards():
         row = by_event.get(card.event_id)
         if row is None:
@@ -59,49 +114,57 @@ def compile_rows(raw: list[dict], allow_partial: bool = False) -> dict[str, list
         by_category[(card.split, card.category)].append(card.event_id)
         for index, item in enumerate(row["documents"]):
             title = item["title"].strip()
-            if card.person not in title:
-                title = f"{card.person} · {title}"
+            text = item["text"].strip()
+            if card.person in title:
+                raise ValueError(f"Person name in title: {card.event_id}-d{index}")
+            if card.identity_style == "implicit" and (
+                card.person in title + text or RELATIONSHIP_PATTERN.search(title + text)
+            ):
+                raise ValueError(f"Identity shortcut in implicit event: {card.event_id}-d{index}")
             document = {
                 "doc_id": f"{card.event_id}-d{index}",
                 "event_id": card.event_id,
                 "family_id": card.family_id,
                 "split": card.split,
                 "category": card.category,
+                "date": card.date,
+                "fact_value": card.fact_value,
+                "person": card.person,
+                "identity_style": card.identity_style,
+                "answer_doc_index": card.answer_doc_index,
+                "date_style": card.document_date_styles[index],
                 "title": title,
-                "text": item["text"].strip(),
+                "text": text,
             }
             documents.append(document)
             event_docs[card.event_id].append(document)
-        use_paraphrase = (int(card.event_id.split("-")[-1]) // len(TOPICS)) % 2 == 0
-        question = PARAPHRASE_QUERIES[card.category] if use_paraphrase else row["query"].strip()
-        query_source = "paraphrase_template" if use_paraphrase else "teacher"
-        if not use_paraphrase and "query: replaced answer clue with paraphrase" in row.get("curation_repairs", []):
-            query_source = "curated_paraphrase"
-        if not use_paraphrase and (ord(card.fact_label[-1]) - 0xAC00) % 28 == 0:
-            corrected = question.replace(f"{card.fact_label}은", f"{card.fact_label}는")
-            if corrected != question:
-                question = corrected
-                query_source = "teacher_grammar_fixed"
-        if card.person not in question:
-            question = f"{card.person} 기록에서 {question}"
-        relevant = [
-            document["doc_id"]
-            for document in event_docs[card.event_id]
-            if card.fact_value in document["text"]
-        ]
-        if event_docs[card.event_id][0]["doc_id"] not in relevant:
-            raise ValueError(f"Search evidence missing: {card.event_id}")
-        if len(relevant) != 1:
+        question = row["query"].strip()
+        query_source = "curated_paraphrase" if "query: replaced answer clue with paraphrase" in row.get("curation_repairs", []) else "teacher"
+        if card.identity_style == "implicit" and (
+            card.person in question or RELATIONSHIP_PATTERN.search(question)
+        ):
+            raise ValueError(f"Identity shortcut in implicit query: {card.event_id}")
+        if card.identity_style == "named" and card.person not in question:
+            raise ValueError(f"Missing person name in named query: {card.event_id}")
+        relevant = [document["doc_id"] for document in event_docs[card.event_id] if card.fact_value in document["text"]]
+        evidence_doc_id = f"{card.event_id}-d{card.answer_doc_index}"
+        if evidence_doc_id not in relevant:
+            raise ValueError(f"Search evidence missing from configured document: {card.event_id}")
+        if relevant != [evidence_doc_id]:
             raise ValueError(f"Answer repeated outside evidence document: {card.event_id}")
         queries.append(
             {
                 "query_id": f"{card.event_id}-q0",
                 "event_id": card.event_id,
                 "split": card.split,
+                "person": card.person,
+                "identity_style": card.identity_style,
+                "answer_doc_index": card.answer_doc_index,
+                "date_style": card.query_date_style,
                 "text": question,
                 "query_source": query_source,
                 "relevant_doc_ids": relevant,
-                "evidence_doc_id": event_docs[card.event_id][0]["doc_id"],
+                "evidence_doc_id": evidence_doc_id,
                 "evidence": row["evidence"],
                 "reviewed": False,
             }
@@ -109,6 +172,10 @@ def compile_rows(raw: list[dict], allow_partial: bool = False) -> dict[str, list
 
     pairs: list[dict] = []
     triplets: list[dict] = []
+    train_cards = [card_by_event[event_id] for event_id in event_docs if card_by_event[event_id].split == "train"]
+    train_type_schedule = _cluster_type_schedule(train_cards)
+    negative_usage: dict[tuple[str, str], set[str]] = defaultdict(set)
+    pools_by_event = {card.event_id: _negative_pools(card, train_cards) for card in train_cards}
     for split in SPLIT_EVENTS:
         split_events = [card.event_id for card in cards(split) if card.event_id in event_docs]
         for event_id in split_events:
@@ -116,11 +183,11 @@ def compile_rows(raw: list[dict], allow_partial: bool = False) -> dict[str, list
             peers = by_category[(split, row["category"])]
             if len(peers) < 2:
                 continue
-            negative_event = peers[(peers.index(event_id) + 1) % len(peers)]
             if split == "train":
+                card = card_by_event[event_id]
                 fact_tokens = [token for token in row["fact_value"].split() if len(token) >= 2]
                 search_negative_index = min(
-                    range(1, DOCUMENTS_PER_EVENT),
+                    (index for index in range(DOCUMENTS_PER_EVENT) if index != card.answer_doc_index),
                     key=lambda index: (
                         sum(token in event_docs[event_id][index]["text"] for token in fact_tokens),
                         index,
@@ -130,40 +197,62 @@ def compile_rows(raw: list[dict], allow_partial: bool = False) -> dict[str, list
                     {
                         "task": "search",
                         "anchor_id": f"{event_id}-q0",
-                        "positive_id": f"{event_id}-d0",
+                        "positive_id": f"{event_id}-d{card.answer_doc_index}",
                         "negative_id": f"{event_id}-d{search_negative_index}",
                     }
                 )
-                for index in range(DOCUMENTS_PER_EVENT):
+                for index, negative_type in enumerate(train_type_schedule[event_id]):
+                    pool = pools_by_event[event_id].get(negative_type, [])
+                    negative = _pick_negative(
+                        pool,
+                        event_id,
+                        index,
+                        negative_type,
+                        negative_usage[(event_id, negative_type)],
+                    )
+                    if negative is None and allow_partial:
+                        fallback = [candidate for candidate in train_cards if candidate.event_id != event_id]
+                        negative = _pick_negative(
+                            fallback,
+                            event_id,
+                            index,
+                            "partial",
+                            negative_usage[(event_id, "partial")],
+                        )
+                        negative_type = "partial"
+                    if negative is None:
+                        raise ValueError(f"No {negative_type} negative candidate for {event_id}")
                     triplets.append(
                         {
                             "task": "clustering",
                             "anchor_id": f"{event_id}-d{index}",
                             "positive_id": f"{event_id}-d{(index + 1) % DOCUMENTS_PER_EVENT}",
-                            "negative_id": f"{negative_event}-d{index}",
+                            "negative_id": f"{negative.event_id}-d{index}",
+                            "negative_type": negative_type,
                         }
                     )
         if split in ("dev", "test") and len(split_events) >= 50:
             for event_id in split_events[:50]:
+                slot = int.from_bytes(_stable_order(event_id, f"pair-slot-{split}")[:4], "big") % DOCUMENTS_PER_EVENT
                 pairs.append(
                     {
                         "pair_id": f"{event_id}-related",
                         "split": split,
-                        "left_id": f"{event_id}-d0",
-                        "right_id": f"{event_id}-d1",
+                        "left_id": f"{event_id}-d{slot}",
+                        "right_id": f"{event_id}-d{(slot + 1) % DOCUMENTS_PER_EVENT}",
                         "related": True,
                         "reviewed": False,
                     }
                 )
                 category = by_event[event_id]["category"]
-                peers = by_category[(split, category)]
-                other = peers[(peers.index(event_id) + 1) % len(peers)]
+                same_topic_peers = by_category[(split, category)]
+                other = same_topic_peers[(same_topic_peers.index(event_id) + 1) % len(same_topic_peers)]
                 pairs.append(
                     {
                         "pair_id": f"{event_id}-unrelated",
                         "split": split,
-                        "left_id": f"{event_id}-d0",
-                        "right_id": f"{other}-d0",
+                        "left_id": f"{event_id}-d{slot}",
+                        "right_id": f"{other}-d{slot}",
                         "related": False,
                         "reviewed": False,
                     }
@@ -219,6 +308,9 @@ def prepare(args: argparse.Namespace) -> None:
     }
     counts["triplets"] = len(rows["triplets"])
     counts["triplets_by_task"] = dict(Counter(item["task"] for item in rows["triplets"]))
+    counts["clustering_negative_types"] = dict(
+        Counter(item.get("negative_type", "unknown") for item in rows["triplets"] if item["task"] == "clustering")
+    )
     curation_path = raw_path.parent / "curation.json"
     curation = None
     if curation_path.exists():
@@ -238,10 +330,16 @@ def prepare(args: argparse.Namespace) -> None:
         "prompt_version": raw[0]["prompt_version"],
         "code_files": {
             name: sha256(Path(__file__).with_name(name))
-            for name in ("common.py", "generate.py", "repair_duplicates.py", "curate.py", "prepare.py")
+            for name in ("common.py", "generate.py", "repair_duplicates.py", "curate.py", "prepare.py", "validate.py", "train.py", "evaluate.py", *( ("data_v3.py",) if raw[0].get("card_revision") == "context-hardneg-v3" else () ))
         },
+        "dataset_revision": raw[0].get("card_revision", "shortcut-hardneg-v2-balanced"),
+        "data_seed": SEED,
         "split_policy": "families, events, and source cards stay in one split",
-        "search_negative_policy": "same-event non-answer document with least fact-token overlap",
+        "answer_position_policy": "balanced by split and category across d0-d3",
+        "identity_style_policy": "balanced named/implicit by split and category; no person-name title prefix",
+        "date_style_policy": "ISO, exact Korean full date, or exact Korean month-day; relative and approximate dates are excluded",
+        "search_negative_policy": "one within-event evidence negative and one same-family other-event negative per query" if raw[0].get("card_revision") == "context-hardneg-v3" else "same-event non-answer document with least fact-token overlap",
+        "clustering_negative_policy": "A 50% same-family other-event; B 30% same-category other-family different-fact, same-date prioritized; C 20% same-fact other-family" if raw[0].get("card_revision") == "context-hardneg-v3" else "A 50% same-family other-event; B 30% same-category other-family; C 20% other-family other-category with shared fact or within 30 days",
         "counts": counts,
         "repair_counts": dict(Counter(repair for row in raw for repair in row.get("repairs", []))),
         "curation_repair_counts": dict(Counter(repair for row in raw for repair in row.get("curation_repairs", []))),
