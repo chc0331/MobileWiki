@@ -87,9 +87,9 @@ v3 생성은 독립 요청 하나가 여덟 번 실패하면 중단한다. 같�
 
 검토 기록은 `artifacts/context-hardneg-v3/` 아래에 있다. 전체 검토는 `debug/semantic-audit-prefix168-a.json`·`debug/semantic-audit-prefix168-b.json`, 수정 계획은 `debug/semantic-repair-prefix168-plan.json`에 보존했다. 현재 후보의 최종 판단과 반영 해시는 `semantic_candidates/review-all-current.json`, `semantic_candidates/state.json`에서 확인한다. 이 판단은 잠정 AI 검토이며 사람 검수가 아니다. 불확실한 사례와 어색한 표현이 남아 있어 최종 자료 품질은 미판정이다.
 
-학습 200개·개발 75개 사건을 생성하고 AI로 전체 의미를 잠정 검토했다. 필요한 출력 17개를 재생성해 확인한 뒤, 고정 기반 모델에서 q/k/v/o·마진 0.2 설정 한 개를 새로 학습했다. 개발 자료로 300단계 체크포인트와 군집 거리 기준값 0.4를 골라 고정했다. 개발 검색 Recall@5는 70/75(93.3%), 전체 사건 쌍 F1은 1.000이다. 그러나 이전 v1·v2 자료의 검색 Recall@5는 각각 53/140(37.9%)·54/140(38.6%)로 낮다. 새 v3 시험 사건 250개는 생성과 전체 자동 검증을 마쳤다. 시험 자료의 의미 검토와 사람 검수는 남아 있다. 모델 시험 평가는 실행하지 않았으며, 새 v3 시험 성능도 아직 미판정이다. 생성·검증 기록과 회귀 지표는 [v3 실험 결과](RESULTS_v3.md)에 있다.
+학습 사건 200개와 개발 사건 75개를 생성하고 AI로 전체 의미를 잠정 검토했다. 필요한 출력 17개를 재생성해 확인한 뒤, 고정 기반 모델에서 q/k/v/o·마진 0.2 설정 하나를 새로 학습했다. 개발 자료로 300단계 체크포인트와 군집 거리 기준값 0.4를 골라 고정했다. 개발 검색 Recall@5는 70/75(93.3%), 전체 사건 쌍 F1은 1.000이다. 이전 v1·v2 자료의 검색 Recall@5는 각각 53/140(37.9%)와 54/140(38.6%)로 낮았다. 새 v3 시험 평가에서 LoRA 모델은 질문 250개 중 210개를 상위 5개에 포함해 Recall@5 0.840, 전체 사건 쌍 F1 0.832를 기록했다. 기반 모델은 같은 자료에서 각각 0.872와 0.483을 기록했다. 검색 목표 0.90에는 미달했고 군집 목표 0.80은 넘었다. `test-0010`의 시간 순서 오류와 사람 검수 미완료로 모든 시험 지표는 잠정 진단이다. 자세한 비교는 [v3 실험 결과](RESULTS_v3.md)에 있다.
 
-v3 [합성 데이터셋](https://huggingface.co/datasets/heecchoi/slm-wiki-embeddinggemma2-text-synthetic-v3/tree/27e1536b4bcb769158e12ed6bc566e8dcfd5071b)과 [LoRA 어댑터](https://huggingface.co/heecchoi/slm-wiki-embeddinggemma2-ko-lora-v3/tree/dad1f6c1f825ea4a4a7cf0067edd4f6138de2dcd)를 Hugging Face 비공개 저장소에 올렸다. 내려받은 데이터셋은 전체 자동 검증을 다시 통과했고 모델 파일의 해시도 모두 일치했다. 두 보관본은 잠정 상태다. 시험 자료의 의미 검수와 사람 검수, 모델 시험 평가는 남아 있다.
+v3 [합성 데이터셋](https://huggingface.co/datasets/heecchoi/slm-wiki-embeddinggemma2-text-synthetic-v3/tree/27e1536b4bcb769158e12ed6bc566e8dcfd5071b)과 [시험 결과를 반영한 LoRA 어댑터](https://huggingface.co/heecchoi/slm-wiki-embeddinggemma2-ko-lora-v3/tree/2dbd069c9cdf56723372718f5e3b8d4102213ef3)를 Hugging Face 비공개 저장소에 올렸다. 내려받은 데이터셋은 전체 자동 검증을 다시 통과했고 모델 파일의 해시도 모두 일치했다. 두 보관본은 잠정 상태다. 시험 자료의 의미 검수와 사람 검수는 남아 있다.
 
 시험 생성의 누적 실행 한도는 사용자 승인으로 24시간에서 32시간으로 늘렸다. `test-0012`가 일반 복구 한도에서 실패해 이 사건에만 추가 난수 공간 하나를 사용했다. 이전 실패 응답과 예외 기록은 보존했고, 모델 가중치와 개발 자료에서 고른 설정은 바꾸지 않았다.
 

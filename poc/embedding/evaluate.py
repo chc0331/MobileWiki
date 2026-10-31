@@ -369,7 +369,7 @@ def evaluate(args: argparse.Namespace) -> None:
     dev_pairs = [pair for pair in pairs if pair["split"] == "dev"]
     test_pairs = [pair for pair in pairs if pair["split"] == "test"]
     dev_queries = [query for query in queries if query["split"] == "dev"]
-    test_queries = [query for query in queries if query["split"] == "test"][:140]
+    test_queries = [query for query in queries if query["split"] == "test"]
     dev_chunks, dev_chunk_ids = encode_documents(model, dev_docs, "clustering", args.batch_size, cache_dir, model_key, deidentify)
     dev_vectors = document_vectors(dev_chunks, dev_chunk_ids, dev_docs)
     if profile:
