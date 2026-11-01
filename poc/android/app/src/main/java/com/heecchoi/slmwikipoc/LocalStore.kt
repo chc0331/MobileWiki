@@ -4,8 +4,20 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import org.json.JSONArray
+import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+
+data class DocumentSource(
+    val fileName: String,
+    val mimeType: String,
+    val storedPath: String? = null,
+    val pageTexts: List<String> = emptyList(),
+    val devicePath: String? = null,
+    val deviceSize: Long? = null,
+    val deviceModifiedAt: Long? = null,
+)
 
 data class Note(
     val id: String,
@@ -17,10 +29,20 @@ data class Note(
     val updatedAt: Long,
     val searchVectors: List<FloatArray>,
     val clusterVector: FloatArray,
+    val groundTruthGroup: String? = null,
+    val source: DocumentSource? = null,
 )
 
-data class NoteInput(val id: String, val eventId: String?, val title: String, val text: String)
+data class NoteInput(
+    val id: String,
+    val eventId: String?,
+    val title: String,
+    val text: String,
+    val groundTruthGroup: String? = null,
+    val source: DocumentSource? = null,
+)
 data class DailyUsageSummary(val day: String, val positive: Int, val negative: Int, val coldP95Ms: Double?, val warmP95Ms: Double?, val failedRuns: Int)
+data class ScannedDocumentRecord(val id: String, val path: String, val size: Long, val modifiedAt: Long)
 
 object FloatCodec {
     fun encode(vectors: List<FloatArray>): ByteArray {
@@ -40,7 +62,7 @@ object FloatCodec {
     fun decodeOne(bytes: ByteArray): FloatArray = decode(bytes).single()
 }
 
-class LocalStore(context: Context) : SQLiteOpenHelper(context, "notes-poc.db", null, 1) {
+class LocalStore(context: Context) : SQLiteOpenHelper(context, "notes-poc.db", null, 3) {
     override fun onConfigure(db: SQLiteDatabase) {
         db.setForeignKeyConstraintsEnabled(true)
     }
@@ -56,10 +78,19 @@ class LocalStore(context: Context) : SQLiteOpenHelper(context, "notes-poc.db", n
                 created_at INTEGER NOT NULL,
                 updated_at INTEGER NOT NULL,
                 search_vectors BLOB NOT NULL,
-                cluster_vector BLOB NOT NULL
+                cluster_vector BLOB NOT NULL,
+                ground_truth_group TEXT,
+                source_name TEXT,
+                source_mime_type TEXT,
+                source_path TEXT,
+                page_texts TEXT,
+                device_path TEXT,
+                device_size INTEGER,
+                device_modified_at INTEGER
             )""".trimIndent(),
         )
         db.execSQL("CREATE INDEX notes_workspace_updated ON notes(workspace, updated_at DESC)")
+        db.execSQL("CREATE INDEX notes_device_path ON notes(device_path)")
         db.execSQL(
             """CREATE TABLE feedback (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -92,19 +123,40 @@ class LocalStore(context: Context) : SQLiteOpenHelper(context, "notes-poc.db", n
         )
     }
 
-    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        if (oldVersion < 2) {
+            db.execSQL("ALTER TABLE notes ADD COLUMN ground_truth_group TEXT")
+            db.execSQL("ALTER TABLE notes ADD COLUMN source_name TEXT")
+            db.execSQL("ALTER TABLE notes ADD COLUMN source_mime_type TEXT")
+            db.execSQL("ALTER TABLE notes ADD COLUMN source_path TEXT")
+            db.execSQL("ALTER TABLE notes ADD COLUMN page_texts TEXT")
+        }
+        if (oldVersion < 3) {
+            db.execSQL("ALTER TABLE notes ADD COLUMN device_path TEXT")
+            db.execSQL("ALTER TABLE notes ADD COLUMN device_size INTEGER")
+            db.execSQL("ALTER TABLE notes ADD COLUMN device_modified_at INTEGER")
+            db.execSQL("CREATE INDEX notes_device_path ON notes(device_path)")
+        }
+    }
 
     fun notes(workspace: String): List<Note> = readableDatabase.rawQuery(
-        "SELECT id, workspace, event_id, title, body, created_at, updated_at, search_vectors, cluster_vector FROM notes WHERE workspace=? ORDER BY updated_at DESC",
+        "SELECT id, workspace, event_id, title, body, created_at, updated_at, search_vectors, cluster_vector, ground_truth_group, source_name, source_mime_type, source_path, page_texts, device_path, device_size, device_modified_at FROM notes WHERE workspace=? ORDER BY updated_at DESC",
         arrayOf(workspace),
     ).use { cursor -> buildList {
         while (cursor.moveToNext()) add(cursor.toNote())
     } }
 
     fun note(id: String): Note? = readableDatabase.rawQuery(
-        "SELECT id, workspace, event_id, title, body, created_at, updated_at, search_vectors, cluster_vector FROM notes WHERE id=?",
+        "SELECT id, workspace, event_id, title, body, created_at, updated_at, search_vectors, cluster_vector, ground_truth_group, source_name, source_mime_type, source_path, page_texts, device_path, device_size, device_modified_at FROM notes WHERE id=?",
         arrayOf(id),
     ).use { cursor -> if (cursor.moveToFirst()) cursor.toNote() else null }
+
+    fun scannedDocuments(): List<ScannedDocumentRecord> = readableDatabase.rawQuery(
+        "SELECT id, device_path, device_size, device_modified_at FROM notes WHERE workspace='experiment' AND device_path IS NOT NULL",
+        null,
+    ).use { cursor -> buildList {
+        while (cursor.moveToNext()) add(ScannedDocumentRecord(cursor.getString(0), cursor.getString(1), cursor.getLong(2), cursor.getLong(3)))
+    } }
 
     fun upsert(input: NoteInput, searchVectors: List<FloatArray>, clusterVector: FloatArray, workspace: String = "personal") {
         val now = System.currentTimeMillis()
@@ -119,11 +171,29 @@ class LocalStore(context: Context) : SQLiteOpenHelper(context, "notes-poc.db", n
             put("updated_at", now)
             put("search_vectors", FloatCodec.encode(searchVectors))
             put("cluster_vector", FloatCodec.encode(listOf(clusterVector)))
+            put("ground_truth_group", input.groundTruthGroup ?: existing?.groundTruthGroup)
+            val source = input.source ?: existing?.source
+            put("source_name", source?.fileName)
+            put("source_mime_type", source?.mimeType)
+            put("source_path", source?.storedPath)
+            put("page_texts", source?.pageTexts?.let { JSONArray(it).toString() })
+            put("device_path", source?.devicePath)
+            put("device_size", source?.deviceSize)
+            put("device_modified_at", source?.deviceModifiedAt)
         }
         writableDatabase.insertWithOnConflict("notes", null, values, SQLiteDatabase.CONFLICT_REPLACE)
     }
 
-    fun delete(id: String) { writableDatabase.delete("notes", "id=?", arrayOf(id)) }
+    fun updateGroundTruthGroup(id: String, label: String?) {
+        val values = ContentValues().apply { put("ground_truth_group", label?.trim()?.takeIf(String::isNotEmpty)) }
+        writableDatabase.update("notes", values, "id=? AND workspace='experiment'", arrayOf(id))
+    }
+
+    fun delete(id: String) {
+        val sourcePath = note(id)?.source?.storedPath
+        writableDatabase.delete("notes", "id=?", arrayOf(id))
+        sourcePath?.let { File(it).delete() }
+    }
 
     fun importedSample(id: String): Boolean = readableDatabase.rawQuery(
         "SELECT 1 FROM notes WHERE id=? AND workspace='sample'", arrayOf(id),
@@ -215,5 +285,17 @@ class LocalStore(context: Context) : SQLiteOpenHelper(context, "notes-poc.db", n
         id = getString(0), workspace = getString(1), eventId = if (isNull(2)) null else getString(2),
         title = getString(3), text = getString(4), createdAt = getLong(5), updatedAt = getLong(6),
         searchVectors = FloatCodec.decode(getBlob(7)), clusterVector = FloatCodec.decodeOne(getBlob(8)),
+        groundTruthGroup = if (isNull(9)) null else getString(9),
+        source = if (isNull(10)) null else DocumentSource(
+            fileName = getString(10),
+            mimeType = getString(11),
+            storedPath = if (isNull(12)) null else getString(12),
+            pageTexts = if (isNull(13)) emptyList() else JSONArray(getString(13)).let { pages ->
+                List(pages.length()) { index -> pages.getString(index) }
+            },
+            devicePath = if (isNull(14)) null else getString(14),
+            deviceSize = if (isNull(15)) null else getLong(15),
+            deviceModifiedAt = if (isNull(16)) null else getLong(16),
+        ),
     )
 }

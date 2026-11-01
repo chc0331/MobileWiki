@@ -82,6 +82,92 @@ object NoteSearch {
 
 object AverageLinkageGroups {
     private data class Candidate(val distance: Double, val left: Int, val right: Int)
+    private data class MergeNode(val leaf: Int = -1, val left: Int = -1, val right: Int = -1, val distance: Double = Double.NaN)
+
+    fun clusterLarge(notes: List<Note>, threshold: Double, checkCancelled: () -> Unit = {}): List<NoteGroup> {
+        val count = notes.size
+        if (count <= 1) return cluster(notes, threshold)
+        val pairCount = count.toLong() * (count - 1) / 2
+        val requiredBytes = pairCount * Double.SIZE_BYTES
+        check(pairCount <= Int.MAX_VALUE && requiredBytes < Runtime.getRuntime().maxMemory() / 2) {
+            "문서 ${count}개의 정확한 평균 연결 군집에 필요한 메모리가 부족합니다."
+        }
+        val distances = DoubleArray(pairCount.toInt())
+        fun position(a: Int, b: Int): Int {
+            val low = minOf(a, b)
+            val high = maxOf(a, b)
+            return (low.toLong() * (2L * count - low - 1) / 2 + high - low - 1).toInt()
+        }
+        fun distance(a: Int, b: Int) = distances[position(a, b)]
+        fun setDistance(a: Int, b: Int, value: Double) { distances[position(a, b)] = value }
+        for (a in 0 until count) {
+            checkCancelled()
+            for (b in a + 1 until count) {
+                setDistance(a, b, (1.0 - NoteSearch.cosine(notes[a].clusterVector, notes[b].clusterVector)).coerceIn(0.0, 2.0))
+            }
+        }
+        val active = BooleanArray(count) { true }
+        val sizes = IntArray(count) { 1 }
+        val nodes = MutableList(count) { index -> MergeNode(leaf = index) }
+        val nodeAt = IntArray(count) { it }
+        val chain = ArrayList<Int>()
+        var remaining = count
+        while (remaining > 1) {
+            checkCancelled()
+            if (chain.isEmpty()) chain += active.indexOfFirst { it }
+            val a = chain.last()
+            var closest = -1
+            var closestDistance = Double.POSITIVE_INFINITY
+            for (b in 0 until count) if (active[b] && b != a) {
+                val value = distance(a, b)
+                if (value < closestDistance || (value == closestDistance && b < closest)) {
+                    closest = b
+                    closestDistance = value
+                }
+            }
+            if (chain.size >= 2 && closest == chain[chain.lastIndex - 1]) {
+                val b = closest
+                val keep = minOf(a, b)
+                val drop = maxOf(a, b)
+                val combinedSize = sizes[a] + sizes[b]
+                nodes += MergeNode(left = nodeAt[a], right = nodeAt[b], distance = closestDistance)
+                nodeAt[keep] = nodes.lastIndex
+                for (other in 0 until count) if (active[other] && other != a && other != b) {
+                    setDistance(keep, other, (sizes[a] * distance(a, other) + sizes[b] * distance(b, other)) / combinedSize)
+                }
+                sizes[keep] = combinedSize
+                active[drop] = false
+                remaining--
+                chain.clear()
+                chain += keep
+            } else if (closest in chain) {
+                chain.clear()
+                chain += closest
+            } else {
+                chain += closest
+            }
+        }
+        val cut = ArrayList<Int>()
+        val pending = ArrayDeque<Int>()
+        pending.add(nodeAt[active.indexOfFirst { it }])
+        while (pending.isNotEmpty()) {
+            val index = pending.removeLast()
+            val node = nodes[index]
+            if (node.leaf >= 0 || node.distance <= threshold) cut += index
+            else { pending.add(node.left); pending.add(node.right) }
+        }
+        return cut.map { index ->
+            val leafIds = ArrayList<Int>()
+            pending.add(index)
+            while (pending.isNotEmpty()) {
+                val node = nodes[pending.removeLast()]
+                if (node.leaf >= 0) leafIds += node.leaf
+                else { pending.add(node.left); pending.add(node.right) }
+            }
+            val groupNotes = leafIds.sorted().map(notes::get)
+            NoteGroup(index, groupNotes.first().title.ifBlank { "이름 미정" }, groupNotes)
+        }.sortedWith(compareByDescending<NoteGroup> { it.notes.size }.thenBy { it.label })
+    }
 
     fun cluster(notes: List<Note>, threshold: Double): List<NoteGroup> {
         if (notes.isEmpty()) return emptyList()

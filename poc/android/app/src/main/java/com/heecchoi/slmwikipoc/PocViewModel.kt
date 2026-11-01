@@ -5,8 +5,13 @@ import android.app.ActivityManager
 import android.net.Uri
 import android.os.Build
 import android.os.Debug
+import android.os.Environment
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.Dispatchers
@@ -14,10 +19,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
 import java.util.UUID
 import kotlin.math.ceil
 
-enum class AppTab(val label: String) { NOTES("메모"), GROUPS("묶음"), SEARCH("검색"), EVALUATION("평가") }
+enum class AppTab(val label: String) { NOTES("문서"), GROUPS("군집"), SEARCH("검색"), EVALUATION("평가") }
 
 data class PerformanceResult(
     val coldP95Ms: Double,
@@ -38,11 +44,18 @@ data class AppUiState(
     val modelReady: Boolean = false,
     val modelError: String? = null,
     val tab: AppTab = AppTab.NOTES,
-    val workspace: String = "personal",
+    val workspace: String = "experiment",
     val clusterThreshold: Double = 0.05,
+    val experimentThreshold: Double = 0.05,
     val device: DeviceSummary? = null,
     val notes: List<Note> = emptyList(),
     val groups: List<NoteGroup> = emptyList(),
+    val projectedDocuments: List<ProjectedDocument> = emptyList(),
+    val experimentMetrics: ExperimentClusteringMetrics? = null,
+    val importPreview: List<ImportPreviewItem>? = null,
+    val scanActive: Boolean = false,
+    val scanProgress: Pair<Int, Int>? = null,
+    val scanReport: String? = null,
     val query: String = "",
     val searchMode: SearchMode = SearchMode.HYBRID,
     val hits: List<SearchHit> = emptyList(),
@@ -58,6 +71,10 @@ data class AppUiState(
 class PocViewModel(application: Application) : AndroidViewModel(application) {
     private val store = LocalStore(application)
     private val model: EmbeddingModel = EmbeddingModel.from(application)
+    private var experimentProjectionKey: List<Pair<String, Long>>? = null
+    private var experimentProjectionCache: List<ProjectedDocument> = emptyList()
+    private var scanJob: Job? = null
+    private var groupJob: Job? = null
     private val initialPssKb = Debug.getPss()
     private val deviceSummary = run {
         val memory = ActivityManager.MemoryInfo()
@@ -73,7 +90,8 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 withContext(Dispatchers.IO) { model.load() }
                 val manifest = JSONObject(getApplication<Application>().assets.open("evaluation.json").bufferedReader().use { it.readText() }).getJSONObject("manifest")
-                state = state.copy(modelReady = true, device = deviceSummary, clusterThreshold = manifest.getDouble("cluster_threshold"), modelStatus = "학습 어댑터 checkpoint-250 · ONNX Runtime CPU")
+                val threshold = manifest.getDouble("cluster_threshold")
+                state = state.copy(modelReady = true, device = deviceSummary, clusterThreshold = threshold, experimentThreshold = threshold, modelStatus = "학습 어댑터 checkpoint-250 · ONNX Runtime CPU")
                 refreshNotes()
                 recordPss()
                 refreshDailySummaries()
@@ -89,9 +107,17 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun selectWorkspace(workspace: String) {
-        state = state.copy(workspace = workspace, hits = emptyList(), query = "", message = null)
+        state = state.copy(
+            workspace = workspace,
+            notes = emptyList(),
+            groups = emptyList(),
+            projectedDocuments = emptyList(),
+            experimentMetrics = null,
+            hits = emptyList(),
+            query = "",
+            message = null,
+        )
         refreshNotes()
-        if (state.tab == AppTab.GROUPS && state.modelReady) refreshGroups()
     }
 
     fun setQuery(query: String) { state = state.copy(query = query) }
@@ -122,13 +148,236 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun deleteNote(note: Note) {
-        if (note.workspace != "personal") return
+        if (note.workspace !in setOf("personal", "experiment")) return
         viewModelScope.launch(Dispatchers.IO) {
             store.delete(note.id)
             withContext(Dispatchers.Main) {
                 state = state.copy(message = "메모를 삭제했습니다.")
                 refreshNotes()
-                if (state.tab == AppTab.GROUPS) refreshGroups()
+            }
+        }
+    }
+
+    fun previewDocuments(uris: List<Uri>) {
+        if (state.workspace != "experiment" || !state.modelReady || uris.isEmpty()) return
+        state = state.copy(loading = true, busyMessage = "선택한 문서를 확인하는 중입니다", message = null)
+        viewModelScope.launch {
+            val previews = mutableListOf<ImportPreviewItem>()
+            uris.forEachIndexed { index, uri ->
+                state = state.copy(busyMessage = "문서 확인 ${index + 1}/${uris.size}")
+                val preview = withContext(Dispatchers.IO) {
+                    try {
+                        val document = DocumentImportParser.parse(getApplication(), uri)
+                        ImportPreviewItem(document, document.fileName)
+                    } catch (error: CancellationException) {
+                        throw error
+                    } catch (error: Throwable) {
+                        val fallbackName = uri.lastPathSegment?.substringAfterLast('/')?.substringAfterLast(':') ?: "선택한 파일"
+                        ImportPreviewItem(null, fallbackName, error.message ?: "파일을 읽지 못했습니다.")
+                    }
+                }
+                previews += preview
+            }
+            state = state.copy(loading = false, busyMessage = null, importPreview = previews)
+            if (previews.none { it.document != null }) state = state.copy(message = "가져올 수 있는 문서가 없습니다.")
+        }
+    }
+
+    fun setImportGroundTruth(documentId: String, value: String) {
+        val previews = state.importPreview ?: return
+        state = state.copy(importPreview = previews.map { item ->
+            if (item.document?.id == documentId) item.copy(groundTruthGroup = value) else item
+        })
+    }
+
+    fun cancelDocumentImport() {
+        val previews = state.importPreview ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            previews.mapNotNull { it.document }.forEach(DocumentImportParser::cleanup)
+        }
+        state = state.copy(importPreview = null)
+    }
+
+    fun deviceScanPermissionDenied() {
+        state = state.copy(message = "모든 파일 접근 권한이 없어 기기 문서를 스캔하지 않았습니다. 수동 문서 가져오기는 사용할 수 있습니다.")
+    }
+
+    fun cancelDeviceScan() { scanJob?.cancel() }
+
+    fun startDeviceScan() {
+        if (state.workspace != "experiment" || !state.modelReady || state.loading || scanJob?.isActive == true) return
+        if (!Environment.isExternalStorageManager()) { deviceScanPermissionDenied(); return }
+        groupJob?.cancel()
+        state = state.copy(loading = true, scanActive = true, scanProgress = null, scanReport = null, busyMessage = "공유 저장소에서 문서를 찾는 중입니다", message = null)
+        scanJob = viewModelScope.launch {
+            var added = 0
+            var updated = 0
+            var reused = 0
+            var removed = 0
+            var pathErrors = 0
+            val excluded = mutableMapOf<String, Int>()
+            try {
+                val discovery = DeviceDocumentScanner.discover(getApplication())
+                if (discovery.availableVolumes == 0) error("읽을 수 있는 공유 저장소가 없습니다.")
+                val previous = withContext(Dispatchers.IO) { store.scannedDocuments().associateBy { it.path } }
+                val seen = HashSet<String>()
+                val total = discovery.files.size
+                discovery.files.forEachIndexed { index, file ->
+                    currentCoroutineContext().ensureActive()
+                    state = state.copy(scanProgress = index to total, busyMessage = "문서 확인·임베딩 ${index + 1}/$total: ${file.name}")
+                    val path = try { file.canonicalPath } catch (_: Exception) {
+                        excluded.merge("경로를 확인할 수 없음", 1, Int::plus)
+                        pathErrors++
+                        return@forEachIndexed
+                    }
+                    seen += path
+                    val size = file.length()
+                    val modifiedAt = file.lastModified()
+                    val old = previous[path]
+                    if (size > DocumentImportParser.MAX_FILE_BYTES) {
+                        excluded.merge("10MB 초과", 1, Int::plus)
+                        if (old != null) withContext(Dispatchers.IO) { store.delete(old.id) }
+                        return@forEachIndexed
+                    }
+                    if (old != null && old.size == size && old.modifiedAt == modifiedAt) {
+                        reused++
+                        return@forEachIndexed
+                    }
+                    var parsed: ParsedDocument? = null
+                    try {
+                        withContext(Dispatchers.IO) {
+                            val document = DocumentImportParser.parseFile(getApplication(), file)
+                            parsed = document
+                            check(file.length() == size && file.lastModified() == modifiedAt) { "읽는 동안 파일이 변경됨" }
+                            val vectors = model.embedNote(document.title, document.text)
+                            val source = DocumentSource(document.fileName, document.mimeType, pageTexts = document.pageTexts, devicePath = path, deviceSize = size, deviceModifiedAt = modifiedAt)
+                            val id = old?.id ?: "scan-${UUID.nameUUIDFromBytes(path.toByteArray(Charsets.UTF_8))}"
+                            store.upsert(NoteInput(id, null, document.title, document.text, source = source), vectors.searchChunks, vectors.cluster, "experiment")
+                        }
+                        if (old == null) added++ else updated++
+                    } catch (error: CancellationException) {
+                        throw error
+                    } catch (error: Exception) {
+                        val reason = error.message?.substringBefore(':')?.take(60) ?: "읽기 또는 임베딩 실패"
+                        excluded.merge(reason, 1, Int::plus)
+                    } finally {
+                        parsed?.let(DocumentImportParser::cleanup)
+                    }
+                }
+                val complete = discovery.complete && pathErrors == 0
+                if (complete) {
+                    removed = withContext(Dispatchers.IO) {
+                        previous.values.filter { it.path !in seen }.onEach { store.delete(it.id) }.size
+                    }
+                }
+                state = state.copy(scanProgress = total to total, busyMessage = "군집과 지도를 계산하는 중입니다")
+                val notes = withContext(Dispatchers.IO) { store.notes("experiment") }
+                val threshold = state.experimentThreshold
+                val groups = withContext(Dispatchers.Default) {
+                    val context = currentCoroutineContext()
+                    AverageLinkageGroups.clusterLarge(notes, threshold) { context.ensureActive() }
+                }
+                val projected = withContext(Dispatchers.Default) { PcaProjector.project(notes) }
+                val report = buildString {
+                    append("발견 $total · 새 문서 $added · 갱신 $updated · 재사용 $reused · 사라진 문서 정리 $removed")
+                    append("\n지원하지 않는 파일 ${discovery.unsupported}개 · 읽을 수 없는 폴더/저장소 ${discovery.unreadableDirectories}개")
+                    if (excluded.isNotEmpty()) {
+                        append("\n제외/실패: ${excluded.entries.joinToString(" · ") { "${it.key} ${it.value}개" }}")
+                        append("\n처리하지 못한 파일이 있어 지도에 이전에 저장한 문서가 남아 있을 수 있습니다.")
+                    }
+                    if (!complete) append("\n일부 파일에 접근하지 못해 이번 스캔에서는 사라진 문서를 정리하지 않았습니다.")
+                }
+                experimentProjectionKey = notes.map { it.id to it.updatedAt }
+                experimentProjectionCache = projected
+                state = state.copy(loading = false, scanActive = false, scanProgress = null, scanReport = report, busyMessage = null,
+                    message = if (complete && excluded.isEmpty()) "기기 문서 스캔을 마쳤습니다." else "스캔 결과에 제외하거나 읽지 못한 항목이 있습니다.",
+                    tab = if (state.workspace == "experiment") AppTab.GROUPS else state.tab,
+                    notes = if (state.workspace == "experiment") notes else state.notes,
+                    groups = if (state.workspace == "experiment") groups else state.groups,
+                    projectedDocuments = if (state.workspace == "experiment") projected else state.projectedDocuments,
+                    experimentMetrics = if (state.workspace == "experiment") ExperimentClusteringMetricsCalculator.calculate(notes, groups) else state.experimentMetrics)
+            } catch (error: CancellationException) {
+                state = state.copy(loading = false, scanActive = false, scanProgress = null,
+                    scanReport = "스캔 중단 · 새 문서 $added · 갱신 $updated · 재사용 $reused. 다음 스캔에서 이어서 처리합니다.",
+                    busyMessage = null, message = "스캔을 중단했습니다. 일부 문서만 저장되었을 수 있습니다.")
+                if (state.workspace == "experiment") refreshNotes()
+            } catch (error: Throwable) {
+                state = state.copy(loading = false, scanActive = false, scanProgress = null,
+                    scanReport = "군집 결과를 완료하지 못했습니다. 새 문서 $added · 갱신 $updated · 재사용 $reused. 다시 스캔하면 저장된 임베딩을 재사용합니다.",
+                    groups = emptyList(), projectedDocuments = emptyList(), experimentMetrics = null,
+                    busyMessage = null, message = "스캔 또는 군집 계산을 완료하지 못했습니다: ${error.message ?: error.javaClass.simpleName}")
+                if (state.workspace == "experiment") refreshNotes()
+            } finally {
+                scanJob = null
+            }
+        }
+    }
+
+    fun commitDocumentImport() {
+        val previews = state.importPreview ?: return
+        val documents = previews.mapNotNull { item -> item.document?.let { item to it } }
+        if (documents.isEmpty()) return
+        state = state.copy(loading = true, busyMessage = "문서를 임베딩하고 저장하는 중입니다", message = null)
+        viewModelScope.launch {
+            var saved = 0
+            val failures = mutableListOf<String>()
+            documents.forEachIndexed { index, (item, document) ->
+                state = state.copy(busyMessage = "문서 임베딩 ${index + 1}/${documents.size}: ${document.fileName}")
+                try {
+                    withContext(Dispatchers.IO) {
+                        val vectors = model.embedNote(document.title, document.text)
+                        val source = DocumentImportParser.persistSource(
+                            document,
+                            File(getApplication<Application>().noBackupFilesDir, "experiment-documents"),
+                        )
+                        try {
+                            store.upsert(
+                                NoteInput(
+                                    document.id,
+                                    null,
+                                    document.title,
+                                    document.text,
+                                    item.groundTruthGroup.trim().takeIf(String::isNotEmpty),
+                                    source,
+                                ),
+                                vectors.searchChunks,
+                                vectors.cluster,
+                                "experiment",
+                            )
+                        } catch (error: Throwable) {
+                            source.storedPath?.let { File(it).delete() }
+                            throw error
+                        }
+                    }
+                    saved++
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Throwable) {
+                    failures += "${document.fileName}: ${error.message ?: error.javaClass.simpleName}"
+                } finally {
+                    DocumentImportParser.cleanup(document)
+                }
+            }
+            state = state.copy(
+                loading = false,
+                busyMessage = null,
+                importPreview = null,
+                message = buildString {
+                    append("${saved}개 문서를 군집 실험 공간에 추가했습니다.")
+                    if (failures.isNotEmpty()) append(" 실패 ${failures.size}개: ${failures.joinToString(" · ")}")
+                },
+            )
+            refreshNotes()
+        }
+    }
+
+    fun updateExperimentGroundTruth(note: Note, value: String) {
+        if (note.workspace != "experiment") return
+        viewModelScope.launch(Dispatchers.IO) {
+            store.updateGroundTruthGroup(note.id, value.trim().takeIf(String::isNotEmpty))
+            withContext(Dispatchers.Main) {
+                state = state.copy(message = "정답 주제를 저장했습니다.")
+                refreshNotes()
             }
         }
     }
@@ -184,13 +433,47 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun refreshGroups() {
+        if (state.scanActive) return
         val notes = state.notes
-        val threshold = state.clusterThreshold
+        val workspace = state.workspace
+        val isExperiment = workspace == "experiment"
+        val threshold = if (isExperiment) state.experimentThreshold else state.clusterThreshold
         if (!state.modelReady) return
-        viewModelScope.launch {
-            val groups = withContext(Dispatchers.Default) { AverageLinkageGroups.cluster(notes, threshold) }
-            state = state.copy(groups = groups)
+        groupJob?.cancel()
+        groupJob = viewModelScope.launch {
+            try {
+            val groups = withContext(Dispatchers.Default) {
+                if (isExperiment) {
+                    val context = currentCoroutineContext()
+                    AverageLinkageGroups.clusterLarge(notes, threshold) { context.ensureActive() }
+                } else AverageLinkageGroups.cluster(notes, threshold)
+            }
+            val metrics = if (isExperiment) ExperimentClusteringMetricsCalculator.calculate(notes, groups) else null
+            val projectionKey = notes.map { it.id to it.updatedAt }
+            val projected = if (isExperiment) {
+                if (projectionKey == experimentProjectionKey) experimentProjectionCache
+                else withContext(Dispatchers.Default) { PcaProjector.project(notes) }.also {
+                    experimentProjectionKey = projectionKey
+                    experimentProjectionCache = it
+                }
+            } else emptyList()
+            val currentThreshold = if (state.workspace == "experiment") state.experimentThreshold else state.clusterThreshold
+            if (state.workspace != workspace || currentThreshold != threshold || state.notes.map { it.id to it.updatedAt } != projectionKey) return@launch
+            state = state.copy(groups = groups, experimentMetrics = metrics, projectedDocuments = projected)
+            } catch (_: CancellationException) {
+                // A newer threshold or workspace superseded this calculation.
+            } catch (error: Throwable) {
+                if (state.workspace == workspace) state = state.copy(message = "군집을 계산하지 못했습니다: ${error.message ?: error.javaClass.simpleName}", groups = emptyList(), projectedDocuments = emptyList(), experimentMetrics = null)
+            }
         }
+    }
+
+    fun setExperimentThreshold(value: Float) {
+        state = state.copy(experimentThreshold = value.toDouble().coerceIn(0.0, 2.0))
+    }
+
+    fun applyExperimentThreshold() {
+        if (state.workspace == "experiment") refreshGroups()
     }
 
     fun feedback(type: String, id: String, positive: Boolean) {
@@ -348,6 +631,7 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
     private fun jsonNumber(value: Double): Any = if (value.isFinite()) value else JSONObject.NULL
 
     override fun onCleared() {
+        state.importPreview?.mapNotNull { it.document }?.forEach(DocumentImportParser::cleanup)
         model.close()
         store.close()
         super.onCleared()
