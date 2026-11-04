@@ -206,6 +206,7 @@ private fun NotesScreen(
     onScanDevice: () -> Unit,
 ) {
     val state = viewModel.state
+    var selectedDocumentId by rememberSaveable { mutableStateOf<String?>(null) }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { Text(
             if (state.workspace == "experiment") "실험 문서와 정답 주제는 이 기기의 앱 전용 저장소에만 저장합니다."
@@ -242,32 +243,55 @@ private fun NotesScreen(
         } else {
             item { Text("${state.notes.size}개 ${if (state.workspace == "experiment") "문서" else "메모"}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold) }
             items(state.notes, key = Note::id) { note ->
-                ElevatedCard(Modifier.fillMaxWidth().clickable { if (note.workspace == "personal") onEdit(note) }) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(note.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                        Text(
-                            note.text.take(if (note.workspace == "experiment") 1800 else Int.MAX_VALUE) + if (note.workspace == "experiment" && note.text.length > 1800) "…" else "",
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                        note.source?.let { source ->
-                            Text("파일 · ${source.fileName}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            source.devicePath?.let { Text("기기 스캔 · $it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                        }
-                        if (note.workspace == "experiment") Text("정답 주제 · ${note.groundTruthGroup ?: "미지정"}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(formatDate(note.updatedAt), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        if (note.workspace == "personal") Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            TextButton(onClick = { onEdit(note) }) { Text("수정") }
-                            TextButton(onClick = { onDelete(note) }) { Text("삭제", color = MaterialTheme.colorScheme.error) }
-                        }
-                        if (note.workspace == "experiment") Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            TextButton(onClick = { onEditLabel(note) }) { Text("정답 주제 수정") }
-                            TextButton(onClick = { onDelete(note) }) { Text("삭제", color = MaterialTheme.colorScheme.error) }
+                ElevatedCard(Modifier.fillMaxWidth().clickable {
+                    if (note.workspace == "personal") onEdit(note)
+                    else if (note.workspace == "experiment") selectedDocumentId = note.id
+                }) {
+                    if (note.workspace == "experiment") {
+                        Text(note.title, Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    } else {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(note.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                            Text(note.text, style = MaterialTheme.typography.bodyMedium)
+                            note.source?.let { source ->
+                                Text("파일 · ${source.fileName}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                source.devicePath?.let { Text("기기 스캔 · $it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                            }
+                            Text(formatDate(note.updatedAt), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            if (note.workspace == "personal") Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                TextButton(onClick = { onEdit(note) }) { Text("수정") }
+                                TextButton(onClick = { onDelete(note) }) { Text("삭제", color = MaterialTheme.colorScheme.error) }
+                            }
                         }
                     }
                 }
             }
         }
         item { Spacer(Modifier.height(72.dp)) }
+    }
+    state.notes.firstOrNull { it.id == selectedDocumentId && it.workspace == "experiment" }?.let { note ->
+        AlertDialog(
+            onDismissRequest = { selectedDocumentId = null },
+            title = { Text(note.title) },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(note.text)
+                    note.source?.let { source ->
+                        Text("파일 · ${source.fileName}", style = MaterialTheme.typography.labelSmall)
+                        source.devicePath?.let { Text("기기 스캔 · $it", style = MaterialTheme.typography.labelSmall) }
+                    }
+                    Text("정답 주제 · ${note.groundTruthGroup ?: "미지정"}", style = MaterialTheme.typography.labelSmall)
+                    Text(formatDate(note.updatedAt), style = MaterialTheme.typography.labelSmall)
+                }
+            },
+            confirmButton = { TextButton(onClick = { selectedDocumentId = null }) { Text("닫기") } },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = { selectedDocumentId = null; onEditLabel(note) }) { Text("주제 수정") }
+                    TextButton(onClick = { selectedDocumentId = null; onDelete(note) }) { Text("삭제", color = MaterialTheme.colorScheme.error) }
+                }
+            },
+        )
     }
 }
 
