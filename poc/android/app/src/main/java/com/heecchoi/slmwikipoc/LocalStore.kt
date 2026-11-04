@@ -62,7 +62,7 @@ object FloatCodec {
     fun decodeOne(bytes: ByteArray): FloatArray = decode(bytes).single()
 }
 
-class LocalStore(context: Context) : SQLiteOpenHelper(context, "notes-poc.db", null, 3) {
+class LocalStore(context: Context, databaseName: String = "notes-poc.db") : SQLiteOpenHelper(context, databaseName, null, 4) {
     override fun onConfigure(db: SQLiteDatabase) {
         db.setForeignKeyConstraintsEnabled(true)
     }
@@ -121,6 +121,7 @@ class LocalStore(context: Context) : SQLiteOpenHelper(context, "notes-poc.db", n
                 model_files_bytes INTEGER NOT NULL
             )""".trimIndent(),
         )
+        LifeSchema.create(db)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -137,6 +138,7 @@ class LocalStore(context: Context) : SQLiteOpenHelper(context, "notes-poc.db", n
             db.execSQL("ALTER TABLE notes ADD COLUMN device_modified_at INTEGER")
             db.execSQL("CREATE INDEX notes_device_path ON notes(device_path)")
         }
+        if (oldVersion < 4) LifeSchema.create(db)
     }
 
     fun notes(workspace: String): List<Note> = readableDatabase.rawQuery(
@@ -191,7 +193,15 @@ class LocalStore(context: Context) : SQLiteOpenHelper(context, "notes-poc.db", n
 
     fun delete(id: String) {
         val sourcePath = note(id)?.source?.storedPath
-        writableDatabase.delete("notes", "id=?", arrayOf(id))
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            db.delete("life_records", "note_id=?", arrayOf(id))
+            db.delete("notes", "id=?", arrayOf(id))
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
         sourcePath?.let { File(it).delete() }
     }
 

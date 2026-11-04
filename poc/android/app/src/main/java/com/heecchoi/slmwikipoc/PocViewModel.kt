@@ -23,7 +23,7 @@ import java.io.File
 import java.util.UUID
 import kotlin.math.ceil
 
-enum class AppTab(val label: String) { NOTES("문서"), GROUPS("군집"), SEARCH("검색"), EVALUATION("평가") }
+enum class AppTab(val label: String) { LIFE("생활"), NOTES("문서"), GROUPS("군집"), SEARCH("검색"), EVALUATION("평가") }
 
 data class PerformanceResult(
     val coldP95Ms: Double,
@@ -43,7 +43,7 @@ data class AppUiState(
     val modelStatus: String = "학습 모델을 확인하는 중입니다",
     val modelReady: Boolean = false,
     val modelError: String? = null,
-    val tab: AppTab = AppTab.NOTES,
+    val tab: AppTab = AppTab.LIFE,
     val workspace: String = "experiment",
     val clusterThreshold: Double = 0.05,
     val experimentThreshold: Double = 0.05,
@@ -70,8 +70,8 @@ data class AppUiState(
 )
 
 class PocViewModel(application: Application) : AndroidViewModel(application) {
-    private val store = LocalStore(application)
-    private val model: EmbeddingModel = EmbeddingModel.from(application)
+    private val store = LifeServices.store(application)
+    private val model: EmbeddingModel = LifeServices.model(application)
     private var experimentProjectionKey: List<Pair<String, Long>>? = null
     private var experimentProjectionCache: List<ProjectedDocument> = emptyList()
     private var scanJob: Job? = null
@@ -635,8 +635,6 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
 
     override fun onCleared() {
         state.importPreview?.mapNotNull { it.document }?.forEach(DocumentImportParser::cleanup)
-        model.close()
-        store.close()
         super.onCleared()
     }
 }

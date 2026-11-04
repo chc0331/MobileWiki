@@ -52,11 +52,13 @@ class EmbeddingModel(private val context: Context) : AutoCloseable {
         }
     }
 
+    @Synchronized
     fun embedQuery(query: String): FloatArray {
         val text = "task: search result | query: $query"
         return run(tokenize(text, special = true).take(510).toIntArray())
     }
 
+    @Synchronized
     fun embedNote(title: String, text: String): NoteVectors {
         val search = documentChunks(title, text, clustering = false).map(::run)
         val clustering = documentChunks(title, text, clustering = true).map(::run)

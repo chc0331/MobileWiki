@@ -70,16 +70,46 @@ import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     private val viewModel: PocViewModel by lazy { ViewModelProvider(this)[PocViewModel::class.java] }
+    private val lifeViewModel: LifeViewModel by lazy { ViewModelProvider(this)[LifeViewModel::class.java] }
+    private var sharedText by mutableStateOf<SharedLifeText?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { MaterialTheme { PocApp(viewModel) } }
+        sharedText = savedInstanceState?.getString("life_share_body")?.let {
+            SharedLifeText(savedInstanceState.getString("life_share_title").orEmpty(), it)
+        } ?: readSharedText(intent)
+        setContent { MaterialTheme { PocApp(viewModel, lifeViewModel, sharedText) { sharedText = null } } }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        readSharedText(intent)?.let { sharedText = it }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        lifeViewModel.onResume()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        sharedText?.let { outState.putString("life_share_title", it.title); outState.putString("life_share_body", it.body) }
+        super.onSaveInstanceState(outState)
+    }
+
+    private fun readSharedText(intent: Intent?): SharedLifeText? {
+        if (intent?.action != Intent.ACTION_SEND || intent.type?.startsWith("text/") != true) return null
+        val body = intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString()?.takeIf(String::isNotBlank) ?: return null
+        val title = intent.getStringExtra(Intent.EXTRA_SUBJECT)?.takeIf(String::isNotBlank)
+            ?: body.lineSequence().first().take(80)
+        intent.action = Intent.ACTION_MAIN
+        return SharedLifeText(title, body)
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PocApp(viewModel: PocViewModel) {
+private fun PocApp(viewModel: PocViewModel, lifeViewModel: LifeViewModel, sharedText: SharedLifeText?, onSharedDone: () -> Unit) {
     val state = viewModel.state
     val context = LocalContext.current
     var editing by remember { mutableStateOf<Note?>(null) }
@@ -91,21 +121,23 @@ private fun PocApp(viewModel: PocViewModel) {
     val scanPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (Environment.isExternalStorageManager()) viewModel.startDeviceScan() else viewModel.deviceScanPermissionDenied()
     }
+    LaunchedEffect(sharedText) { if (sharedText != null) viewModel.selectTab(AppTab.LIFE) }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Column {
-                        Text("문서 군집 실험", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                        Text(state.modelStatus, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(if (state.tab == AppTab.LIFE) "생활 기록" else "문서 군집 실험", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                        Text(if (state.tab == AppTab.LIFE) "기기에만 저장" else state.modelStatus,
+                            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 },
             )
         },
         bottomBar = {
             NavigationBar {
-                listOf(AppTab.NOTES, AppTab.GROUPS).forEach { tab ->
+                listOf(AppTab.LIFE, AppTab.NOTES, AppTab.GROUPS).forEach { tab ->
                     NavigationBarItem(
                         selected = state.tab == tab,
                         onClick = { viewModel.selectTab(tab) },
@@ -139,6 +171,7 @@ private fun PocApp(viewModel: PocViewModel) {
             }
             state.message?.let { Text(it, Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall) }
             when (state.tab) {
+                AppTab.LIFE -> LifeScreen(lifeViewModel, sharedText, onSharedDone, onOpenDocuments = { viewModel.selectTab(AppTab.NOTES) })
                 AppTab.NOTES -> NotesScreen(
                     viewModel,
                     onEdit = { editing = it; showEditor = true },
