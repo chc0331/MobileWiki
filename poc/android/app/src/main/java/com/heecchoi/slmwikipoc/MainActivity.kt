@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -46,10 +47,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
@@ -271,7 +274,92 @@ private fun NotesScreen(
 @Composable
 private fun GroupsScreen(viewModel: PocViewModel) {
     val state = viewModel.state
-    var selectedDocument by remember { mutableStateOf<Note?>(null) }
+    var selectedGroupId by rememberSaveable { mutableStateOf<Int?>(null) }
+    var unclassifiedOpen by rememberSaveable { mutableStateOf(false) }
+    var selectedDocumentId by rememberSaveable { mutableStateOf<String?>(null) }
+    var previousGroups by remember { mutableStateOf(state.groups) }
+    val grouped = state.groups.withIndex().filter { it.value.notes.size > 1 }
+    val unclassified = state.groups.filter { it.notes.size == 1 }.flatMap { it.notes }
+    val selectedGroup = grouped.firstOrNull { it.value.id == selectedGroupId }
+    val selectedDocument = state.notes.firstOrNull { it.id == selectedDocumentId }
+    LaunchedEffect(state.groups) {
+        if (previousGroups !== state.groups) {
+            selectedGroupId = null
+            unclassifiedOpen = false
+            selectedDocumentId = null
+        }
+        previousGroups = state.groups
+    }
+    LaunchedEffect(state.notes) {
+        if (selectedDocumentId != null && state.notes.none { it.id == selectedDocumentId }) selectedDocumentId = null
+    }
+    BackHandler(enabled = state.workspace == "experiment" && (selectedDocumentId != null || selectedGroupId != null || unclassifiedOpen)) {
+        if (selectedDocumentId != null) selectedDocumentId = null
+        else {
+            selectedGroupId = null
+            unclassifiedOpen = false
+        }
+    }
+    if (state.workspace == "experiment" && selectedDocument != null) {
+        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            item { TextButton(onClick = { selectedDocumentId = null }) { Text("← ${if (selectedGroup != null || unclassifiedOpen) "문서 목록" else "군집 개요"}") } }
+            item { Text(selectedDocument.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold) }
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    selectedDocument.source?.let { source ->
+                        Text("파일 · ${source.fileName}", style = MaterialTheme.typography.bodySmall)
+                        source.devicePath?.let { Text("기기 스캔 · $it", style = MaterialTheme.typography.bodySmall) }
+                    }
+                    Text("정답 주제 · ${selectedDocument.groundTruthGroup ?: "미지정"}", style = MaterialTheme.typography.bodySmall)
+                    Text("갱신 · ${formatDate(selectedDocument.updatedAt)}", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            item { Text("추출한 글", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold) }
+            item { Text(selectedDocument.text, style = MaterialTheme.typography.bodyMedium) }
+        }
+        return
+    }
+    if (state.workspace == "experiment" && (selectedGroup != null || unclassifiedOpen)) {
+        val documents = selectedGroup?.value?.notes ?: unclassified
+        val groupTitle = if (unclassifiedOpen) "미분류" else "군집 ${grouped.indexOf(selectedGroup) + 1}"
+        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            item {
+                TextButton(onClick = { selectedGroupId = null; unclassifiedOpen = false }) { Text("← 군집 개요") }
+            }
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Canvas(Modifier.size(12.dp)) { drawCircle(if (selectedGroup == null) Color(0xFF8A8A8A) else clusterColor(selectedGroup.index, selectedGroup.value)) }
+                        Text(groupTitle, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+                    }
+                    Text("${documents.size}개 문서", style = MaterialTheme.typography.titleSmall)
+                    if (unclassifiedOpen) Text("각 문서가 1개짜리 군집에 있습니다.", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            if (selectedGroup != null) item {
+                val groupKey = selectedGroup.value.notes.map { it.id }.sorted().joinToString(",")
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    TextButton(onClick = { viewModel.feedback("experiment_group", groupKey, true) }) { Text("👍 맞게 묶임") }
+                    TextButton(onClick = { viewModel.feedback("experiment_group", groupKey, false) }) { Text("👎 잘못 묶임") }
+                }
+            }
+            items(documents, key = Note::id) { note ->
+                ElevatedCard(Modifier.fillMaxWidth().clickable { selectedDocumentId = note.id }) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(note.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                        Text(note.text.take(160) + if (note.text.length > 160) "…" else "", style = MaterialTheme.typography.bodySmall, maxLines = 2)
+                        Text("정답 주제 · ${note.groundTruthGroup ?: "미지정"}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("문서 열기 ›", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                        if (unclassifiedOpen) Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            TextButton(onClick = { viewModel.feedback("experiment_group", note.id, true) }) { Text("👍 맞게 분류됨") }
+                            TextButton(onClick = { viewModel.feedback("experiment_group", note.id, false) }) { Text("👎 잘못 분류됨") }
+                        }
+                    }
+                }
+            }
+        }
+        return
+    }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         state.scanReport?.let { report -> item {
             ElevatedCard(Modifier.fillMaxWidth()) {
@@ -301,6 +389,12 @@ private fun GroupsScreen(viewModel: PocViewModel) {
                     Text("값이 커지면 더 많은 문서가 같은 군집에 들어갈 수 있습니다. 고정 평가 기준값에는 영향을 주지 않습니다.", style = MaterialTheme.typography.bodySmall)
                 }
             } }
+            if (state.groupCalculationActive) item {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LinearProgressIndicator(Modifier.fillMaxWidth())
+                    Text("군집과 문서 수를 계산하는 중입니다.", style = MaterialTheme.typography.bodySmall)
+                }
+            } else {
             state.experimentMetrics?.let { metrics -> item {
                 ElevatedCard(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -316,64 +410,78 @@ private fun GroupsScreen(viewModel: PocViewModel) {
                     }
                 }
             } }
-            if (state.notes.isNotEmpty()) {
+            if (state.notes.isNotEmpty() && state.groups.isNotEmpty()) {
                 item {
                 Text("2D PCA 지도", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                PcaMap(state.projectedDocuments, state.notes, state.groups, onSelect = { selectedDocument = it })
+                PcaMap(state.projectedDocuments, state.notes, state.groups, onSelect = { selectedDocumentId = it.id })
                 Text("PCA는 문서 임베딩을 2차원으로 줄여 보여주는 방법입니다. 점 간 거리는 원래 임베딩 거리와 달라질 수 있으므로 군집 품질은 정밀도·재현율·F1로 확인하세요.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-            } else {
+            } else if (state.notes.isEmpty()) {
                 item { EmptyCard("군집 실험 공간에 문서를 가져오면 지도가 표시됩니다.") }
+            }
             }
         }
         if (state.workspace == "sample" && state.notes.isEmpty()) item { Button(onClick = viewModel::importSamples, enabled = !state.loading && state.modelReady) { Text("샘플 메모 가져오기") } }
-        item { Text(
-            if (state.workspace == "experiment") {
-                val unclassified = state.groups.count { it.notes.size == 1 }
-                "${state.groups.size - unclassified}개 군집 · ${unclassified}개 미분류 · ${state.notes.size}개 문서"
-            } else "${state.groups.size}개 묶음 · ${state.notes.size}개 메모",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-        ) }
-        items(state.groups.size) { groupIndex ->
-            val group = state.groups[groupIndex]
-            ElevatedCard(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    if (state.workspace == "experiment") {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Canvas(Modifier.size(12.dp)) { drawCircle(clusterColor(groupIndex, group)) }
-                            Text(if (group.notes.size == 1) "미분류" else "군집 ${groupIndex + 1}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                        }
-                    } else Text(group.label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Text("${group.notes.size}개 메모", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    group.notes.take(5).forEach { note ->
-                        val excerpt = if (state.workspace == "experiment") note.text.take(500) + if (note.text.length > 500) "…" else "" else note.text
-                        Text("• ${note.title}: $excerpt", style = MaterialTheme.typography.bodySmall)
+        if (state.workspace == "experiment") {
+            if (!state.groupCalculationActive) {
+                if (state.notes.isNotEmpty() && state.groups.isEmpty()) item { EmptyCard("군집 결과가 없습니다. 위의 오류 안내를 확인하세요.") }
+                else {
+                    item {
+                        Text(
+                            "${grouped.size}개 군집 · 군집 문서 ${grouped.sumOf { it.value.notes.size }}개 · 미분류 문서 ${unclassified.size}개 · 전체 ${state.notes.size}개",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                        )
                     }
-                    if (group.notes.size > 5) Text("외 ${group.notes.size - 5}개", style = MaterialTheme.typography.labelSmall)
-                    val groupKey = group.notes.map { it.id }.sorted().joinToString(",")
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        TextButton(onClick = { viewModel.feedback(if (state.workspace == "experiment") "experiment_group" else "group", groupKey, true) }) { Text("👍 맞게 묶임") }
-                        TextButton(onClick = { viewModel.feedback(if (state.workspace == "experiment") "experiment_group" else "group", groupKey, false) }) { Text("👎 잘못 묶임") }
+                    items(grouped.size, key = { grouped[it].value.id }) { rank ->
+                        val (groupIndex, group) = grouped[rank]
+                        ElevatedCard(Modifier.fillMaxWidth().clickable { selectedGroupId = group.id }) {
+                            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Canvas(Modifier.size(12.dp)) { drawCircle(clusterColor(groupIndex, group)) }
+                                    Text("군집 ${rank + 1}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                                }
+                                Text("${group.notes.size}개 문서", style = MaterialTheme.typography.titleSmall)
+                                Text(group.notes.take(2).joinToString(" · ") { it.title }, style = MaterialTheme.typography.bodySmall, maxLines = 2)
+                                Text("전체 문서 보기 ›", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                    }
+                    if (unclassified.isNotEmpty()) item(key = "unclassified") {
+                        ElevatedCard(Modifier.fillMaxWidth().clickable { unclassifiedOpen = true }) {
+                            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Canvas(Modifier.size(12.dp)) { drawCircle(Color(0xFF8A8A8A)) }
+                                    Text("미분류", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                                }
+                                Text("${unclassified.size}개 문서", style = MaterialTheme.typography.titleSmall)
+                                Text(unclassified.take(2).joinToString(" · ") { it.title }, style = MaterialTheme.typography.bodySmall, maxLines = 2)
+                                Text("전체 문서 보기 ›", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            item { Text("${state.groups.size}개 묶음 · ${state.notes.size}개 메모", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold) }
+            items(state.groups.size) { groupIndex ->
+                val group = state.groups[groupIndex]
+                ElevatedCard(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(group.label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                        Text("${group.notes.size}개 메모", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        group.notes.take(5).forEach { note -> Text("• ${note.title}: ${note.text}", style = MaterialTheme.typography.bodySmall) }
+                        if (group.notes.size > 5) Text("외 ${group.notes.size - 5}개", style = MaterialTheme.typography.labelSmall)
+                        val groupKey = group.notes.map { it.id }.sorted().joinToString(",")
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            TextButton(onClick = { viewModel.feedback("group", groupKey, true) }) { Text("👍 맞게 묶임") }
+                            TextButton(onClick = { viewModel.feedback("group", groupKey, false) }) { Text("👎 잘못 묶임") }
+                        }
                     }
                 }
             }
         }
         item { Spacer(Modifier.height(12.dp)) }
-    }
-    selectedDocument?.let { note ->
-        AlertDialog(
-            onDismissRequest = { selectedDocument = null },
-            title = { Text(note.title) },
-            text = {
-                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    note.source?.let { Text("파일 · ${it.fileName}", style = MaterialTheme.typography.labelSmall) }
-                    Text("정답 주제 · ${note.groundTruthGroup ?: "미지정"}", style = MaterialTheme.typography.labelSmall)
-                    Text(note.text)
-                }
-            },
-            confirmButton = { TextButton(onClick = { selectedDocument = null }) { Text("닫기") } },
-        )
     }
 }
 

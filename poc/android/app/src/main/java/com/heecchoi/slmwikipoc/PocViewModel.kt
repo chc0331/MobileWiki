@@ -50,6 +50,7 @@ data class AppUiState(
     val device: DeviceSummary? = null,
     val notes: List<Note> = emptyList(),
     val groups: List<NoteGroup> = emptyList(),
+    val groupCalculationActive: Boolean = false,
     val projectedDocuments: List<ProjectedDocument> = emptyList(),
     val experimentMetrics: ExperimentClusteringMetrics? = null,
     val importPreview: List<ImportPreviewItem>? = null,
@@ -111,6 +112,7 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
             workspace = workspace,
             notes = emptyList(),
             groups = emptyList(),
+            groupCalculationActive = false,
             projectedDocuments = emptyList(),
             experimentMetrics = null,
             hits = emptyList(),
@@ -208,7 +210,7 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
         if (state.workspace != "experiment" || !state.modelReady || state.loading || scanJob?.isActive == true) return
         if (!Environment.isExternalStorageManager()) { deviceScanPermissionDenied(); return }
         groupJob?.cancel()
-        state = state.copy(loading = true, scanActive = true, scanProgress = null, scanReport = null, busyMessage = "공유 저장소에서 문서를 찾는 중입니다", message = null)
+        state = state.copy(loading = true, scanActive = true, scanProgress = null, scanReport = null, groupCalculationActive = false, busyMessage = "공유 저장소에서 문서를 찾는 중입니다", message = null)
         scanJob = viewModelScope.launch {
             var added = 0
             var updated = 0
@@ -289,7 +291,7 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 experimentProjectionKey = notes.map { it.id to it.updatedAt }
                 experimentProjectionCache = projected
-                state = state.copy(loading = false, scanActive = false, scanProgress = null, scanReport = report, busyMessage = null,
+                state = state.copy(loading = false, scanActive = false, scanProgress = null, scanReport = report, groupCalculationActive = false, busyMessage = null,
                     message = if (complete && excluded.isEmpty()) "기기 문서 스캔을 마쳤습니다." else "스캔 결과에 제외하거나 읽지 못한 항목이 있습니다.",
                     tab = if (state.workspace == "experiment") AppTab.GROUPS else state.tab,
                     notes = if (state.workspace == "experiment") notes else state.notes,
@@ -440,6 +442,7 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
         val threshold = if (isExperiment) state.experimentThreshold else state.clusterThreshold
         if (!state.modelReady) return
         groupJob?.cancel()
+        if (isExperiment) state = state.copy(groupCalculationActive = true)
         groupJob = viewModelScope.launch {
             try {
             val groups = withContext(Dispatchers.Default) {
@@ -459,17 +462,17 @@ class PocViewModel(application: Application) : AndroidViewModel(application) {
             } else emptyList()
             val currentThreshold = if (state.workspace == "experiment") state.experimentThreshold else state.clusterThreshold
             if (state.workspace != workspace || currentThreshold != threshold || state.notes.map { it.id to it.updatedAt } != projectionKey) return@launch
-            state = state.copy(groups = groups, experimentMetrics = metrics, projectedDocuments = projected)
+            state = state.copy(groups = groups, experimentMetrics = metrics, projectedDocuments = projected, groupCalculationActive = false)
             } catch (_: CancellationException) {
                 // A newer threshold or workspace superseded this calculation.
             } catch (error: Throwable) {
-                if (state.workspace == workspace) state = state.copy(message = "군집을 계산하지 못했습니다: ${error.message ?: error.javaClass.simpleName}", groups = emptyList(), projectedDocuments = emptyList(), experimentMetrics = null)
+                if (state.workspace == workspace) state = state.copy(message = "군집을 계산하지 못했습니다: ${error.message ?: error.javaClass.simpleName}", groups = emptyList(), projectedDocuments = emptyList(), experimentMetrics = null, groupCalculationActive = false)
             }
         }
     }
 
     fun setExperimentThreshold(value: Float) {
-        state = state.copy(experimentThreshold = value.toDouble().coerceIn(0.0, 2.0))
+        state = state.copy(experimentThreshold = value.toDouble().coerceIn(0.0, 2.0), groupCalculationActive = true)
     }
 
     fun applyExperimentThreshold() {
