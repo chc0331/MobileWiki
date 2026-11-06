@@ -62,7 +62,7 @@ object FloatCodec {
     fun decodeOne(bytes: ByteArray): FloatArray = decode(bytes).single()
 }
 
-class LocalStore(context: Context, databaseName: String = "notes-poc.db") : SQLiteOpenHelper(context, databaseName, null, 4) {
+class LocalStore(context: Context, databaseName: String = "notes-poc.db") : SQLiteOpenHelper(context, databaseName, null, 5) {
     override fun onConfigure(db: SQLiteDatabase) {
         db.setForeignKeyConstraintsEnabled(true)
     }
@@ -122,6 +122,7 @@ class LocalStore(context: Context, databaseName: String = "notes-poc.db") : SQLi
             )""".trimIndent(),
         )
         LifeSchema.create(db)
+        ExperimentSchema.create(db)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -139,6 +140,7 @@ class LocalStore(context: Context, databaseName: String = "notes-poc.db") : SQLi
             db.execSQL("CREATE INDEX notes_device_path ON notes(device_path)")
         }
         if (oldVersion < 4) LifeSchema.create(db)
+        if (oldVersion < 5) ExperimentSchema.create(db)
     }
 
     fun notes(workspace: String): List<Note> = readableDatabase.rawQuery(

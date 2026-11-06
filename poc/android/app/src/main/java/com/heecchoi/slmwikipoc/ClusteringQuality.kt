@@ -50,7 +50,7 @@ object ExperimentClusteringMetricsCalculator {
 object PcaProjector {
     private const val ITERATIONS = 36
 
-    fun project(notes: List<Note>): List<ProjectedDocument> {
+    fun project(notes: List<Note>, checkCancelled: () -> Unit = {}): List<ProjectedDocument> {
         if (notes.isEmpty()) return emptyList()
         if (notes.size == 1) return listOf(ProjectedDocument(notes.single().id, 0.5f, 0.5f))
         val dimensions = notes.first().clusterVector.size
@@ -58,8 +58,8 @@ object PcaProjector {
         val centered = Array(notes.size) { row ->
             DoubleArray(dimensions) { dimension -> notes[row].clusterVector[dimension].toDouble() - mean[dimension] }
         }
-        val first = principalComponent(centered, emptyList(), 41L)
-        val second = principalComponent(centered, listOfNotNull(first), 83L)
+        val first = principalComponent(centered, emptyList(), 41L, checkCancelled)
+        val second = principalComponent(centered, listOfNotNull(first), 83L, checkCancelled)
         val x = centered.map { row -> first?.let { dot(row, it) } ?: 0.0 }
         val y = centered.map { row -> second?.let { dot(row, it) } ?: 0.0 }
         val xRange = x.maxOrNull()!! - x.minOrNull()!!
@@ -71,13 +71,14 @@ object PcaProjector {
         }
     }
 
-    private fun principalComponent(rows: Array<DoubleArray>, componentsToRemove: List<DoubleArray>, seed: Long): DoubleArray? {
+    private fun principalComponent(rows: Array<DoubleArray>, componentsToRemove: List<DoubleArray>, seed: Long, checkCancelled: () -> Unit): DoubleArray? {
         val dimensions = rows.firstOrNull()?.size ?: return null
         val random = Random(seed)
         var vector = DoubleArray(dimensions) { random.nextDouble() - 0.5 }
         orthogonalize(vector, componentsToRemove)
         if (!normalize(vector)) return null
         repeat(ITERATIONS) {
+            checkCancelled()
             val projections = DoubleArray(rows.size) { row -> dot(rows[row], vector) }
             val next = DoubleArray(dimensions)
             rows.indices.forEach { rowIndex ->

@@ -8,10 +8,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -37,23 +34,7 @@ class LifeWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) { LifeWork.processingMutex.withLock {
         val repo = LifeServices.repository(applicationContext)
         repo.cleanupExpired()
-        while (true) {
-            currentCoroutineContext().ensureActive()
-            val item = repo.nextPending() ?: break
-            try {
-                val model = LifeServices.model(applicationContext)
-                model.load()
-                val vectors = model.embedNote(item.title, item.body)
-                currentCoroutineContext().ensureActive()
-                repo.completePending(item, vectors)
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (error: Exception) {
-                if (repo.failPending(item, error.javaClass.simpleName)) return@withLock Result.retry()
-            } catch (error: OutOfMemoryError) {
-                if (repo.failPending(item, "메모리 부족")) return@withLock Result.retry()
-            }
-        }
+        // 숨긴 생활 기능의 기존 보관 기간은 유지하되, 백그라운드 임베딩은 실행하지 않는다.
         LifeSignals.changed()
         Result.success()
     } }

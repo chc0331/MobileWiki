@@ -1,6 +1,7 @@
 package com.heecchoi.slmwikipoc
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Random
 
@@ -33,5 +34,14 @@ class LargeClusteringTest {
         val groups = AverageLinkageGroups.clusterLarge(notes, 0.35)
         assertEquals(notes.map(Note::id).toSet(), groups.flatMap { group -> group.notes.map(Note::id) }.toSet())
         assertEquals(notes.size, groups.sumOf { it.notes.size })
+    }
+
+    @Test fun oversizedExactClusteringReportsFailureBeforeAllocatingDistanceMatrix() {
+        val vector = floatArrayOf(1f)
+        val base = Note("0", "experiment", null, "문서", "내용", 0, 0, listOf(vector), vector)
+        val notes = List(65_537) { base.copy(id = it.toString()) }
+        val result = runCatching { AverageLinkageGroups.clusterLarge(notes, 0.05) }
+        assertTrue(result.exceptionOrNull() is IllegalStateException)
+        assertTrue(result.exceptionOrNull()?.message?.contains("메모리가 부족") == true)
     }
 }

@@ -69,41 +69,11 @@ import java.util.Date
 import java.util.Locale
 
 class MainActivity : ComponentActivity() {
-    private val viewModel: PocViewModel by lazy { ViewModelProvider(this)[PocViewModel::class.java] }
-    private val lifeViewModel: LifeViewModel by lazy { ViewModelProvider(this)[LifeViewModel::class.java] }
-    private var sharedText by mutableStateOf<SharedLifeText?>(null)
+    private val viewModel: ExperimentViewModel by lazy { ViewModelProvider(this)[ExperimentViewModel::class.java] }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        sharedText = savedInstanceState?.getString("life_share_body")?.let {
-            SharedLifeText(savedInstanceState.getString("life_share_title").orEmpty(), it)
-        } ?: readSharedText(intent)
-        setContent { MaterialTheme { PocApp(viewModel, lifeViewModel, sharedText) { sharedText = null } } }
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        setIntent(intent)
-        readSharedText(intent)?.let { sharedText = it }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        lifeViewModel.onResume()
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        sharedText?.let { outState.putString("life_share_title", it.title); outState.putString("life_share_body", it.body) }
-        super.onSaveInstanceState(outState)
-    }
-
-    private fun readSharedText(intent: Intent?): SharedLifeText? {
-        if (intent?.action != Intent.ACTION_SEND || intent.type?.startsWith("text/") != true) return null
-        val body = intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString()?.takeIf(String::isNotBlank) ?: return null
-        val title = intent.getStringExtra(Intent.EXTRA_SUBJECT)?.takeIf(String::isNotBlank)
-            ?: body.lineSequence().first().take(80)
-        intent.action = Intent.ACTION_MAIN
-        return SharedLifeText(title, body)
+        setContent { MaterialTheme { ExperimentApp(viewModel) } }
     }
 }
 
@@ -543,15 +513,16 @@ private fun GroupsScreen(viewModel: PocViewModel) {
 }
 
 @Composable
-private fun PcaMap(
+internal fun PcaMap(
     projected: List<ProjectedDocument>,
     notes: List<Note>,
     groups: List<NoteGroup>,
+    forceGroupedIds: Set<Int> = emptySet(),
     onSelect: (Note) -> Unit,
 ) {
     val noteById = notes.associateBy(Note::id)
     val groupByNote = groups.flatMap { group -> group.notes.map { it.id to group.id } }.toMap()
-    val groupColors = groups.mapIndexed { index, group -> group.id to clusterColor(index, group) }.toMap()
+    val groupColors = groups.mapIndexed { index, group -> group.id to clusterColor(index, group, group.id in forceGroupedIds) }.toMap()
     val axisColor = MaterialTheme.colorScheme.outlineVariant
     val density = LocalDensity.current
     val margin = with(density) { 18.dp.toPx() }
@@ -612,11 +583,11 @@ private val mapPalette = listOf(
     Color(0xFFBEAED4), Color(0xFF1B9E77), Color(0xFFD95F02), Color(0xFF7570B3),
 )
 
-private fun clusterColor(index: Int, group: NoteGroup) =
-    if (group.notes.size == 1) Color(0xFF8A8A8A) else mapPalette[index % mapPalette.size]
+internal fun clusterColor(index: Int, group: NoteGroup, forceGrouped: Boolean = false) =
+    if (group.notes.size == 1 && !forceGrouped) Color(0xFF8A8A8A) else mapPalette[index % mapPalette.size]
 
 @Composable
-private fun DocumentImportPreviewDialog(
+internal fun DocumentImportPreviewDialog(
     previews: List<ImportPreviewItem>,
     enabled: Boolean,
     onLabelChange: (String, String) -> Unit,

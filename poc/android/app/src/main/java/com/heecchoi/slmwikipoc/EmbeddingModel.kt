@@ -13,6 +13,25 @@ import kotlin.math.sqrt
 
 data class NoteVectors(val searchChunks: List<FloatArray>, val cluster: FloatArray)
 
+object BodyChunking {
+    fun ranges(bodyTokens: Int, prefixTokens: Int): List<IntRange> {
+        val capacity = minOf(420, 509 - prefixTokens)
+        require(capacity > 0 && capacity >= minOf(64, bodyTokens)) { "제목이 너무 길어 본문을 처리할 수 없습니다. 제목을 줄여 주세요." }
+        if (bodyTokens == 0) return listOf(0 until 0)
+        val overlap = minOf(64, capacity / 2)
+        val stride = capacity - overlap
+        val chunks = mutableListOf<IntRange>()
+        var start = 0
+        while (start < bodyTokens) {
+            val end = minOf(start + capacity, bodyTokens)
+            chunks += start until end
+            if (end == bodyTokens) break
+            start += stride
+        }
+        return chunks
+    }
+}
+
 class EmbeddingModel(private val context: Context) : AutoCloseable {
     private var session: OrtSession? = null
     private val environment = OrtEnvironment.getEnvironment()
@@ -65,25 +84,28 @@ class EmbeddingModel(private val context: Context) : AutoCloseable {
         return NoteVectors(search, normalize(mean(clustering)))
     }
 
+    @Synchronized
+    fun embedCluster(title: String, text: String, checkCancelled: () -> Unit = {}): FloatArray {
+        val vectors = documentChunks(title, text, clustering = true).map { tokens ->
+            checkCancelled()
+            run(tokens)
+        }
+        return normalize(mean(vectors))
+    }
+
     private fun documentChunks(title: String, body: String, clustering: Boolean): List<IntArray> {
         val tok = tokenizer ?: error("Model is not loaded")
         val bodyIds = tok.encode(body, withSpecialTokens = false).ids.map(UInt::toInt)
         if (bodyIds.size <= 420) {
             val input = if (clustering) "task: clustering | query: $title\n$body" else "title: $title | text: $body"
-            return listOf(tokenize(input, special = true).take(510).toIntArray())
+            val tokens = tokenize(input, special = true)
+            if (tokens.size <= 510) return listOf(tokens.toIntArray())
         }
         val prefix = if (clustering) "task: clustering | query: $title\n" else "title: $title | text: "
         val prefixIds = tok.encode(prefix, withSpecialTokens = false).ids.map(UInt::toInt)
-        val chunks = mutableListOf<IntArray>()
-        val stride = 420 - 64
-        var start = 0
-        while (start < bodyIds.size) {
-            val ids = (listOf(2) + prefixIds + bodyIds.subList(start, minOf(start + 420, bodyIds.size))).take(510) + 1
-            chunks += ids.toIntArray()
-            if (start + 420 >= bodyIds.size) break
-            start += stride
+        return BodyChunking.ranges(bodyIds.size, prefixIds.size).map { range ->
+            (listOf(2) + prefixIds + bodyIds.subList(range.first, range.last + 1) + 1).toIntArray()
         }
-        return chunks
     }
 
     private fun tokenize(text: String, special: Boolean): List<Int> =
